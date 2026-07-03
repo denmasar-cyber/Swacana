@@ -13,9 +13,10 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Self-Plan Hub",
+  title: "Swacana",
   description: "Local-first AI life management with decision trees",
 };
+
 
 export default function RootLayout({
   children,

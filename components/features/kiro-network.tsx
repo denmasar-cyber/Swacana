@@ -33,8 +33,8 @@ export default function KiroNetwork() {
       <div className="max-w-4xl mx-auto">
         <div className="flex items-center justify-between mb-8">
           <div>
-            <h1 className="text-2xl font-bold text-slate-100">Self-Plan Hub</h1>
-            <p className="text-slate-400 text-sm mt-1">Local-first AI life management</p>
+            <h1 className="text-2xl font-bold text-slate-100">Swacana</h1>
+            <p className="text-slate-400 text-sm mt-1">Local-first AI decision mapping</p>
           </div>
           <button
             onClick={createNote}
