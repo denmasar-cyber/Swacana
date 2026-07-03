@@ -173,7 +173,7 @@ export default function NoteWorkspace({ noteId }: Props) {
         {/* Row 1: Note Editor / Data Explorer */}
         <div className="flex-1 min-h-0 border-b border-slate-700">
           {activePanel === 'editor' ? (
-            <NoteEditor />
+            <NoteEditor key={noteId} noteId={noteId} initialContent={note.content} />
           ) : (
             <DataExplorer />
           )}

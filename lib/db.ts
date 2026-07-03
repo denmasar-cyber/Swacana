@@ -14,13 +14,24 @@ export interface KiroCanvasNode {
 export interface Note {
   id: string;
   title: string;
+  content: string;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface Reminder {
+  id: string;
+  nodeId: string;
+  noteId: string;
+  title: string;
+  targetDate: string;
+  isAcknowledged: boolean;
 }
 
 class SelfPlanDB extends Dexie {
   notes!: Table<Note>;
   nodes!: Table<KiroCanvasNode>;
+  reminders!: Table<Reminder>;
 
   constructor() {
     super('SelfPlanHubDB');
@@ -32,6 +43,12 @@ class SelfPlanDB extends Dexie {
     this.version(2).stores({
       notes: 'id, createdAt, updatedAt',
       nodes: 'id, noteId, parentId, nodeType, status',
+    });
+    // v3: add content to notes, add reminders table
+    this.version(3).stores({
+      notes: 'id, createdAt, updatedAt',
+      nodes: 'id, noteId, parentId, nodeType, status',
+      reminders: 'id, noteId, nodeId, targetDate, isAcknowledged',
     });
   }
 }
