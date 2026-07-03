@@ -53,7 +53,7 @@ function KiroNode({ data }: NodeProps) {
       <p className="mt-1 text-sm font-semibold leading-tight">{node.label}</p>
 
       {/* Details (truncated) */}
-      <p className="mt-1 text-[11px] opacity-80 leading-snug line-clamp-2">
+      <p className="mt-1 text-[11px] opacity-80 leading-snug break-words whitespace-pre-wrap">
         {node.details}
       </p>
 

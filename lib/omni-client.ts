@@ -132,8 +132,7 @@ export async function streamLLM(
   const ok = await tryOllamaFallback(userMessage, onChunk, signal);
   if (!ok) {
     throw new Error(
-      'No AI engine available. Make sure your browser supports WebGPU (Chrome 113+), ' +
-      'or run Ollama locally on port 11434.',
+      'AI free not available. Install/run a local engine (Ollama on :11434) or use a browser that supports WebGPU (Chrome 113+).',
     );
   }
 }
