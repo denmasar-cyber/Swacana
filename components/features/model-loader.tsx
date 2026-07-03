@@ -4,7 +4,7 @@ import { useState, useCallback } from 'react';
 import { Download, CheckCircle, Cpu, ChevronDown } from 'lucide-react';
 import {
   FREE_MODELS,
-  DEFAULT_MODEL_ID,
+  // DEFAULT_MODEL_ID,
   isEngineLoaded,
   getEngine,
   type LoadProgress,
