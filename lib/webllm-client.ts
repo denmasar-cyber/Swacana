@@ -70,18 +70,34 @@ export async function getEngine(
   loadingPromise = (async () => {
     const { CreateMLCEngine } = await import('@mlc-ai/web-llm');
 
-    const newEngine = await CreateMLCEngine(modelId, {
-      initProgressCallback: (report: InitProgressReport) => {
-        onProgress?.({
-          text: report.text,
-          progress: report.progress,
-        });
-      },
-    });
+    // Retry WebGPU/WebLLM init a couple of times.
+    // Some environments intermittently fail during model/cache fetch.
+    const maxAttempts = 3;
+    let lastErr: unknown;
 
-    engine = newEngine;
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      try {
+        const newEngine = await CreateMLCEngine(modelId, {
+          initProgressCallback: (report: InitProgressReport) => {
+            onProgress?.({
+              text: report.text,
+              progress: report.progress,
+            });
+          },
+        });
+
+        engine = newEngine;
+        loadingPromise = null;
+        return engine;
+      } catch (err) {
+        lastErr = err;
+        // Small backoff before retry
+        await new Promise((r) => setTimeout(r, 750 * attempt));
+      }
+    }
+
     loadingPromise = null;
-    return engine;
+    throw lastErr;
   })();
 
   return loadingPromise;
