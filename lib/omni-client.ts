@@ -176,6 +176,18 @@ export function sanitizeAndParseJSON(raw: string): KiroCanvasNode[] {
     if (!Array.isArray(parsed)) return [];
     return parsed as KiroCanvasNode[];
   } catch {
+    // Second chance: try to salvage the first complete JSON array substring
+    // This helps when streams get truncated before final bracket/brace.
+    const arrMatch = raw.match(/\[[\s\S]*\]/);
+    if (arrMatch) {
+      try {
+        const parsed2 = JSON.parse(arrMatch[0]);
+        if (Array.isArray(parsed2)) return parsed2 as KiroCanvasNode[];
+      } catch {
+        // ignore
+      }
+    }
+
     console.warn('[omni-client] JSON parse failed after sanitization.');
     return [];
   }
