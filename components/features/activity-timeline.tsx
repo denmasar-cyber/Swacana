@@ -5,7 +5,7 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { useRouter } from 'next/navigation';
 import { Clock, FileText, CheckCircle2, AlertCircle } from 'lucide-react';
 import { db, type Note } from '@/lib/db';
-import { cn } from '@/lib/utils';
+
 
 interface TimelineEvent {
   id: string;
@@ -89,15 +89,6 @@ export default function ActivityTimeline() {
       .slice(0, 50); // Show latest 50 events
   }, [notes, allNodes, today]);
 
-  if (!notes || notes.length === 0) {
-    return (
-      <div className="h-full flex flex-col items-center justify-center text-slate-500 px-4">
-        <Clock size={24} className="mb-2 opacity-30" />
-        <p className="text-xs text-center">No activity yet.</p>
-      </div>
-    );
-  }
-
   const formatDate = (dateStr: string) => {
     const d = new Date(dateStr);
     const now = new Date();
@@ -121,6 +112,15 @@ export default function ActivityTimeline() {
     }
     return Object.entries(groups).sort(([a], [b]) => b.localeCompare(a));
   }, [events]);
+
+  if (!notes || notes.length === 0) {
+    return (
+      <div className="h-full flex flex-col items-center justify-center text-slate-500 px-4">
+        <Clock size={24} className="mb-2 opacity-30" />
+        <p className="text-xs text-center">No activity yet.</p>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col h-full">

@@ -58,16 +58,13 @@ export default function NoteWorkspace({ noteId }: Props) {
         onLoadProgress,
       );
 
-      // Parse and persist nodes from the completed stream
       const parsed = sanitizeAndParseJSON(fullBuffer);
       if (parsed.length > 0) {
         const withNote = parsed.map((n) => ({ ...n, noteId }));
 
-        // Upsert: replace existing nodes for this note
         await db.nodes.where('noteId').equals(noteId).delete();
         await db.nodes.bulkAdd(withNote);
 
-        // Update note title from ROOT_CAUSE node if present
         const root = withNote.find((n) => n.nodeType === 'ROOT_CAUSE');
         if (root) {
           await db.notes.update(noteId, {
@@ -98,8 +95,11 @@ export default function NoteWorkspace({ noteId }: Props) {
 
   if (!note) {
     return (
-      <div className="min-h-screen bg-slate-950 text-slate-400 flex items-center justify-center text-sm">
-        Loading…
+      <div className="min-h-screen bg-[#0a0a0f] text-[#6b6b80] flex items-center justify-center text-sm">
+        <div className="flex items-center gap-2">
+          <div className="w-4 h-4 border-2 border-[#8b5cf6] border-t-transparent rounded-full animate-spin" />
+          Loading…
+        </div>
       </div>
     );
   }
@@ -107,12 +107,12 @@ export default function NoteWorkspace({ noteId }: Props) {
   const mitigationNodes = (nodes ?? []).filter((n) => n.nodeType === 'MITIGATION');
 
   return (
-    <div className="h-screen bg-slate-950 text-slate-100 flex flex-col overflow-hidden">
+    <div className="h-screen bg-[#0a0a0f] text-[#e8e8ed] flex flex-col overflow-hidden">
       {/* ── Top Bar ── */}
-      <header className="flex items-center gap-3 px-4 py-2 border-b border-slate-700 shrink-0">
+      <header className="flex items-center gap-3 px-4 py-2.5 border-b border-[#2a2a3a] bg-[#0d0d15]/80 backdrop-blur-sm shrink-0">
         <button
           onClick={() => router.push('/')}
-          className="p-1.5 rounded hover:bg-slate-700 transition-colors text-slate-400 hover:text-slate-100"
+          className="p-1.5 rounded-lg hover:bg-[#1a1a25] text-[#6b6b80] hover:text-white transition-all"
         >
           <ArrowLeft size={16} />
         </button>
@@ -124,7 +124,7 @@ export default function NoteWorkspace({ noteId }: Props) {
             onChange={(e) => setTitleDraft(e.target.value)}
             onBlur={saveTitle}
             onKeyDown={(e) => e.key === 'Enter' && saveTitle()}
-            className="bg-slate-800 text-slate-100 text-sm rounded px-2 py-1 border border-slate-600 focus:outline-none focus:border-indigo-500"
+            className="bg-[#12121a] text-white text-sm rounded-lg px-3 py-1.5 border border-[#2a2a3a] focus:outline-none focus:border-[#8b5cf6] focus:ring-1 focus:ring-[#8b5cf6]/30 w-64"
           />
         ) : (
           <button
@@ -132,48 +132,47 @@ export default function NoteWorkspace({ noteId }: Props) {
               setTitleDraft(note.title);
               setEditingTitle(true);
             }}
-            className="flex items-center gap-1.5 text-sm font-semibold hover:text-indigo-400 transition-colors group"
+            className="flex items-center gap-2 text-sm font-semibold hover:text-[#8b5cf6] transition-colors group"
           >
             {note.title}
-            <Pencil size={12} className="opacity-0 group-hover:opacity-100 transition-opacity" />
+            <Pencil size={11} className="opacity-0 group-hover:opacity-100 transition-opacity text-[#6b6b80]" />
           </button>
         )}
 
-        {/* Panel toggle buttons */}
-        <div className="flex items-center gap-1 ml-auto">
-          <button
-            onClick={() => setActivePanel('editor')}
-            className={cn(
-              'text-[10px] px-2 py-1 rounded transition-colors',
-              activePanel === 'editor'
-                ? 'bg-indigo-600/20 text-indigo-300 border border-indigo-500/30'
-                : 'bg-slate-800 text-slate-400 hover:bg-slate-700 border border-slate-700',
-            )}
-          >
-            Notes
-          </button>
-          <button
-            onClick={() => setActivePanel('explorer')}
-            className={cn(
-              'text-[10px] px-2 py-1 rounded transition-colors',
-              activePanel === 'explorer'
-                ? 'bg-indigo-600/20 text-indigo-300 border border-indigo-500/30'
-                : 'bg-slate-800 text-slate-400 hover:bg-slate-700 border border-slate-700',
-            )}
-          >
-            Data Explorer
-          </button>
+        <div className="ml-auto flex items-center gap-2">
+          {/* Panel Tabs */}
+          <div className="flex items-center gap-1 bg-[#12121a] rounded-lg p-0.5 border border-[#2a2a3a]">
+            <button
+              onClick={() => setActivePanel('editor')}
+              className={cn(
+                'text-[10px] px-3 py-1.5 rounded-md transition-all font-medium',
+                activePanel === 'editor'
+                  ? 'bg-gradient-to-r from-[#7c3aed]/20 to-[#6366f1]/10 text-white border border-[#7c3aed]/20'
+                  : 'text-[#6b6b80] hover:text-white',
+              )}
+            >
+              Notes
+            </button>
+            <button
+              onClick={() => setActivePanel('explorer')}
+              className={cn(
+                'text-[10px] px-3 py-1.5 rounded-md transition-all font-medium',
+                activePanel === 'explorer'
+                  ? 'bg-gradient-to-r from-[#7c3aed]/20 to-[#6366f1]/10 text-white border border-[#7c3aed]/20'
+                  : 'text-[#6b6b80] hover:text-white',
+              )}
+            >
+              Data Explorer
+            </button>
+          </div>
           <CollaborationBar noteId={noteId} />
-          <span className="text-[9px] text-slate-600 uppercase tracking-widest ml-2">
-            100% Local
-          </span>
         </div>
       </header>
 
-      {/* ── Main Content Area (3 rows) ── */}
+      {/* ── Main Content Area ── */}
       <div className="flex-1 flex flex-col min-h-0">
         {/* Row 1: Note Editor / Data Explorer */}
-        <div className="flex-1 min-h-0 border-b border-slate-700">
+        <div className="flex-1 min-h-0 border-b border-[#2a2a3a]">
           {activePanel === 'editor' ? (
             <NoteEditor key={noteId} noteId={noteId} initialContent={note.content} />
           ) : (
@@ -181,14 +180,14 @@ export default function NoteWorkspace({ noteId }: Props) {
           )}
         </div>
 
-        {/* Row 2: AI Chat (scrollable) */}
-        <div className="h-64 shrink-0 border-b border-slate-700 flex flex-col">
-          <div className="flex items-center justify-between px-3 py-1 border-b border-slate-700/50 shrink-0">
-            <span className="text-[10px] uppercase tracking-widest text-slate-500 font-semibold flex items-center gap-1">
+        {/* Row 2: AI Chat */}
+        <div className="h-64 shrink-0 border-b border-[#2a2a3a] flex flex-col">
+          <div className="flex items-center justify-between px-4 py-1.5 border-b border-[#2a2a3a]/50 shrink-0">
+            <span className="text-[10px] font-semibold text-[#8b5cf6] flex items-center gap-1.5">
               <LayoutGrid size={10} />
               AI Chat
             </span>
-            <span className="text-[9px] text-slate-600">Powered by WebLLM · 100% Local</span>
+            <span className="text-[9px] text-[#6b6b80]">WebLLM · 100% Local</span>
           </div>
           <div className="flex-1 min-h-0">
             <ChatConsole onStream={handleStream} />
@@ -196,27 +195,27 @@ export default function NoteWorkspace({ noteId }: Props) {
         </div>
 
         {/* Row 3: Toolbar with Mindmap + Mitigation */}
-        <div className="h-56 shrink-0 flex">
-          {/* Toggle toolbar button */}
+        <div className="h-60 shrink-0 flex">
           <button
             onClick={() => setShowToolbar((v) => !v)}
-            className="w-5 shrink-0 flex items-center justify-center border-r border-slate-700 hover:bg-slate-800 transition-colors text-slate-500 hover:text-slate-300"
+            className="w-6 shrink-0 flex items-center justify-center border-r border-[#2a2a3a] hover:bg-[#1a1a25] transition-colors text-[#6b6b80] hover:text-white"
             title={showToolbar ? 'Hide toolbar' : 'Show toolbar'}
           >
-            <div className="w-1 h-8 rounded-full bg-slate-600" />
+            <div className="w-0.5 h-8 rounded-full bg-[#2a2a3a]" />
           </button>
 
           {showToolbar && (
             <>
-              {/* View toggle buttons */}
-              <div className="w-20 shrink-0 flex flex-col border-r border-slate-700 p-1 gap-1">
+              {/* View toggle */}
+              <div className="w-24 shrink-0 flex flex-col border-r border-[#2a2a3a] p-1.5 gap-1 bg-[#0d0d15]/50">
+                <p className="text-[8px] uppercase tracking-[0.15em] text-[#6b6b80] font-semibold px-1 pt-1">View</p>
                 <button
                   onClick={() => setBottomView('mindmap')}
                   className={cn(
-                    'text-[9px] px-1 py-1.5 rounded transition-colors text-center',
+                    'text-[10px] px-2 py-1.5 rounded-md transition-all text-left font-medium',
                     bottomView === 'mindmap' || bottomView === 'both'
-                      ? 'bg-indigo-600/20 text-indigo-300'
-                      : 'text-slate-500 hover:bg-slate-800',
+                      ? 'bg-gradient-to-r from-[#7c3aed]/20 to-[#6366f1]/10 text-white border border-[#7c3aed]/20'
+                      : 'text-[#6b6b80] hover:text-white hover:bg-[#1a1a25]',
                   )}
                 >
                   Mind Map
@@ -224,75 +223,55 @@ export default function NoteWorkspace({ noteId }: Props) {
                 <button
                   onClick={() => setBottomView('mitigation')}
                   className={cn(
-                    'text-[9px] px-1 py-1.5 rounded transition-colors text-center',
+                    'text-[10px] px-2 py-1.5 rounded-md transition-all text-left font-medium',
                     bottomView === 'mitigation' || bottomView === 'both'
-                      ? 'bg-amber-600/20 text-amber-300'
-                      : 'text-slate-500 hover:bg-slate-800',
+                      ? 'bg-amber-500/10 text-amber-300 border border-amber-500/20'
+                      : 'text-[#6b6b80] hover:text-white hover:bg-[#1a1a25]',
                   )}
                 >
-                  Deadline
+                  Deadlines
                 </button>
                 <button
                   onClick={() => setBottomView('both')}
                   className={cn(
-                    'text-[9px] px-1 py-1.5 rounded transition-colors text-center',
+                    'text-[10px] px-2 py-1.5 rounded-md transition-all text-left font-medium',
                     bottomView === 'both'
-                      ? 'bg-emerald-600/20 text-emerald-300'
-                      : 'text-slate-500 hover:bg-slate-800',
+                      ? 'bg-emerald-500/10 text-emerald-300 border border-emerald-500/20'
+                      : 'text-[#6b6b80] hover:text-white hover:bg-[#1a1a25]',
                   )}
                 >
                   Both
                 </button>
               </div>
 
-              {/* Main toolbar content */}
+              {/* Content */}
               <div className="flex-1 min-w-0 flex">
-                {/* Mind Mapping */}
                 {(bottomView === 'mindmap' || bottomView === 'both') && (
-                  <div
-                    className={cn(
-                      'flex flex-col min-w-0',
-                      bottomView === 'both' ? 'w-1/2 border-r border-slate-700' : 'flex-1',
-                    )}
-                  >
-                    <div className="px-2 py-1 border-b border-slate-700/50 shrink-0 flex items-center gap-1">
-                      <span className="text-[10px] uppercase tracking-widest text-indigo-400 font-semibold">
-                        Hierarchical Mind Mapping
-                      </span>
-                      <span className="text-[9px] text-slate-600 ml-auto">
-                        {nodes?.length ?? 0} nodes
-                      </span>
+                  <div className={cn(
+                    'flex flex-col min-w-0',
+                    bottomView === 'both' ? 'w-1/2 border-r border-[#2a2a3a]' : 'flex-1',
+                  )}>
+                    <div className="px-3 py-1.5 border-b border-[#2a2a3a]/50 shrink-0 flex items-center gap-1.5">
+                      <span className="text-[10px] font-semibold text-[#8b5cf6]">Mind Map</span>
+                      <span className="text-[9px] text-[#6b6b80] ml-auto">{nodes?.length ?? 0} nodes</span>
                     </div>
                     <div className="flex-1 min-h-0">
-                      <KiroCanvasWorkspace
-                        nodes={nodes ?? []}
-                        onToggleDone={handleToggleDone}
-                      />
+                      <KiroCanvasWorkspace nodes={nodes ?? []} onToggleDone={handleToggleDone} />
                     </div>
                   </div>
                 )}
 
-                {/* Mitigation Deadline */}
                 {(bottomView === 'mitigation' || bottomView === 'both') && (
-                  <div
-                    className={cn(
-                      'flex flex-col min-w-0',
-                      bottomView === 'both' ? 'w-1/2' : 'flex-1',
-                    )}
-                  >
-                    <div className="px-2 py-1 border-b border-slate-700/50 shrink-0 flex items-center gap-1">
-                      <span className="text-[10px] uppercase tracking-widest text-amber-400 font-semibold">
-                        Mitigation Deadline
-                      </span>
-                      <span className="text-[9px] text-slate-600 ml-auto">
-                        {mitigationNodes.length} tasks
-                      </span>
+                  <div className={cn(
+                    'flex flex-col min-w-0',
+                    bottomView === 'both' ? 'w-1/2' : 'flex-1',
+                  )}>
+                    <div className="px-3 py-1.5 border-b border-[#2a2a3a]/50 shrink-0 flex items-center gap-1.5">
+                      <span className="text-[10px] font-semibold text-amber-400">Mitigation Deadline</span>
+                      <span className="text-[9px] text-[#6b6b80] ml-auto">{mitigationNodes.length} tasks</span>
                     </div>
                     <div className="flex-1 min-h-0 p-2">
-                      <MitigationListView
-                        mitigations={mitigationNodes}
-                        onToggleDone={handleToggleDone}
-                      />
+                      <MitigationListView mitigations={mitigationNodes} onToggleDone={handleToggleDone} />
                     </div>
                   </div>
                 )}
@@ -316,10 +295,10 @@ function MitigationListView({
 
   if (mitigations.length === 0) {
     return (
-      <div className="h-full flex flex-col items-center justify-center text-slate-500">
+      <div className="h-full flex flex-col items-center justify-center text-[#6b6b80]">
         <CalendarClock size={24} className="mb-2 opacity-30" />
         <p className="text-xs text-center">No mitigation tasks yet.</p>
-        <p className="text-[10px] text-slate-600 text-center mt-1">
+        <p className="text-[10px] text-[#6b6b80] text-center mt-1">
           Chat with AI to generate mitigation plans.
         </p>
       </div>
@@ -335,30 +314,15 @@ function MitigationListView({
 
   return (
     <div className="h-full overflow-y-auto space-y-1.5">
-      {/* Overdue first */}
-      {pending
-        .filter((n) => n.targetDate! < today)
-        .map((n) => (
-          <MitigationItem key={n.id} node={n} isOverdue onToggle={onToggleDone} />
-        ))}
-
-      {/* Upcoming */}
-      {pending
-        .filter((n) => n.targetDate! >= today)
-        .map((n) => (
-          <MitigationItem key={n.id} node={n} onToggle={onToggleDone} />
-        ))}
-
-      {/* Done */}
+      {pending.filter((n) => n.targetDate! < today).map((n) => (
+        <MitigationItem key={n.id} node={n} isOverdue onToggle={onToggleDone} />
+      ))}
+      {pending.filter((n) => n.targetDate! >= today).map((n) => (
+        <MitigationItem key={n.id} node={n} onToggle={onToggleDone} />
+      ))}
       {done.map((n) => (
         <MitigationItem key={n.id} node={n} isDone onToggle={onToggleDone} />
       ))}
-
-      {pending.length === 0 && done.length === 0 && (
-        <div className="flex items-center justify-center h-full text-slate-500 text-xs">
-          All tasks are sorted by deadline.
-        </div>
-      )}
     </div>
   );
 }
@@ -375,39 +339,29 @@ function MitigationItem({
   onToggle: (id: string) => void;
 }) {
   return (
-    <div
-      className={cn(
-        'flex items-center gap-2 px-2 py-1.5 rounded text-xs transition-colors',
-        isDone
-          ? 'bg-emerald-900/30 text-emerald-300'
-          : isOverdue
-          ? 'bg-red-900/30 text-red-200'
-          : 'bg-slate-800/60 text-slate-200',
-      )}
-    >
-      <button
-        onClick={() => onToggle(node.id)}
-        className="shrink-0 hover:opacity-80 transition-opacity"
-      >
+    <div className={cn(
+      'flex items-center gap-2 px-3 py-2 rounded-lg text-xs transition-all',
+      isDone
+        ? 'bg-emerald-500/10 text-emerald-300 border border-emerald-500/20'
+        : isOverdue
+        ? 'bg-red-500/10 text-red-200 border border-red-500/20'
+        : 'bg-[#12121a] text-[#e8e8ed] border border-[#2a2a3a] hover:border-[#8b5cf6]/20',
+    )}>
+      <button onClick={() => onToggle(node.id)} className="shrink-0 hover:opacity-80 transition-opacity">
         {isDone ? (
           <CheckSquare size={14} className="text-emerald-400" />
         ) : (
-          <Square size={14} className="text-slate-400" />
+          <Square size={14} className="text-[#6b6b80]" />
         )}
       </button>
       <span className="flex-1 truncate">{node.label}</span>
-      <span
-        className={cn(
-          'shrink-0 font-mono text-[10px] px-1.5 py-0.5 rounded',
-          isDone
-            ? 'bg-emerald-700 text-emerald-200'
-            : isOverdue
-            ? 'bg-red-700 text-red-200'
-            : 'bg-slate-700 text-slate-300',
-        )}
-      >
-        {isDone ? '✓' : isOverdue ? <AlertCircle size={10} className="inline" /> : null}
-        {node.targetDate}
+      <span className={cn(
+        'shrink-0 font-mono text-[10px] px-2 py-0.5 rounded-full',
+        isDone ? 'bg-emerald-500/20 text-emerald-300' :
+        isOverdue ? 'bg-red-500/20 text-red-300' :
+        'bg-[#1a1a25] text-[#6b6b80]',
+      )}>
+        {isDone ? '✓ Done' : isOverdue ? `⚠ ${node.targetDate}` : node.targetDate}
       </span>
     </div>
   );

@@ -7,7 +7,6 @@
 import { db, type KiroCanvasNode } from './db';
 
 const NOW = new Date();
-const TODAY = NOW.toISOString().split('T')[0];
 const DAY = 86_400_000; // ms per day
 
 function daysAgo(n: number) {

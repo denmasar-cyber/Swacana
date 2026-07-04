@@ -1,7 +1,7 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
-import { Users, Wifi, WifiOff, Circle } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { Users, Wifi, WifiOff } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
   initSync,

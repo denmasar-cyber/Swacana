@@ -33,7 +33,9 @@ export default function NoteEditor({ noteId, initialContent = '' }: Props) {
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const contentRef = useRef(content);
-  contentRef.current = content;
+  useEffect(() => {
+    contentRef.current = content;
+  }, [content]);
 
   // ── Debounced save to IndexedDB ──
   const saveToDb = useCallback(async (text: string) => {
@@ -95,6 +97,9 @@ export default function NoteEditor({ noteId, initialContent = '' }: Props) {
     setAiResult(null);
   };
 
+  // eslint-disable-next-line react-hooks/purity — display-only relative time
+  const secondsSinceSave = lastSaved ? Math.floor((Date.now() - lastSaved.getTime()) / 1000) : 0;
+
   return (
     <div className="flex flex-col h-full">
       {/* AI Toolbar */}
@@ -127,7 +132,7 @@ export default function NoteEditor({ noteId, initialContent = '' }: Props) {
             </span>
           ) : lastSaved ? (
             <span className="text-[9px] text-slate-600">
-              Saved {Math.floor((Date.now() - lastSaved.getTime()) / 1000)}s ago
+              Saved {secondsSinceSave}s ago
             </span>
           ) : null}
         </div>

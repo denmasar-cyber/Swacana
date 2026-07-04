@@ -13,10 +13,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Swacana",
-  description: "Local-first AI life management with decision trees",
+  title: "Swacana — AI-Powered Decision Intelligence",
+  description: "Local-first AI life management with decision trees, causal analysis, and real-time collaboration",
 };
-
 
 export default function RootLayout({
   children,
@@ -28,7 +27,12 @@ export default function RootLayout({
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased dark`}
     >
-      <body className="h-full bg-slate-950 text-slate-100">{children}</body>
+      <head>
+        <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%238b5cf6'/><text x='16' y='22' font-size='18' text-anchor='middle' fill='white' font-weight='bold'>S</text></svg>" />
+      </head>
+      <body className="h-full bg-[#0a0a0f] text-[#e8e8ed]" suppressHydrationWarning>
+        {children}
+      </body>
     </html>
   );
 }

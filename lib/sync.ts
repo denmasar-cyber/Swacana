@@ -27,9 +27,9 @@ export interface CollabUser {
 let ws: WebSocket | null = null;
 let bc: BroadcastChannel | null = null;
 let currentNoteId: string | null = null;
-let currentUserId = `local-${Math.random().toString(36).slice(2, 8)}`;
+const currentUserId = `local-${Math.random().toString(36).slice(2, 8)}`;
 let currentUserName = `User ${currentUserId.slice(-4)}`;
-let listeners = new Set<SyncCallback>();
+const listeners = new Set<SyncCallback>();
 let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
 
 // ─── BroadcastChannel (same-browser) ────────────────────────────────────

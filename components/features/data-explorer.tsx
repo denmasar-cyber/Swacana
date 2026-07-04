@@ -97,7 +97,7 @@ function parseTags(tags: string[]): {
 
 function mapToDatasetInfo(ds: HFDataset): DatasetInfo {
   const parsed = parseTags(ds.tags);
-  const [namespace, name] = ds.id.split('/');
+  const [namespace] = ds.id.split('/');
 
   return {
     id: ds.id,
@@ -482,9 +482,12 @@ function DatasetRow({
 
   return (
     <div>
-      <button
+      <div
         onClick={onToggle}
-        className="w-full flex items-start gap-2 px-2 py-2 hover:bg-slate-800/50 transition-colors text-left"
+        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onToggle(); } }}
+        role="button"
+        tabIndex={0}
+        className="w-full flex items-start gap-2 px-2 py-2 hover:bg-slate-800/50 transition-colors text-left cursor-pointer"
       >
         <div className="mt-0.5 shrink-0">
           {isExpanded ? (
@@ -535,7 +538,7 @@ function DatasetRow({
             <ExternalLink size={12} />
           )}
         </button>
-      </button>
+      </div>
 
       {isExpanded && (
         <div className="px-4 pb-2 space-y-1.5">
