@@ -115,50 +115,50 @@ export default function ActivityTimeline() {
 
   if (!notes || notes.length === 0) {
     return (
-      <div className="h-full flex flex-col items-center justify-center text-slate-500 px-4">
+      <div className="h-full flex flex-col items-center justify-center text-muted px-4 animate-fade-in">
         <Clock size={24} className="mb-2 opacity-30" />
-        <p className="text-xs text-center">No activity yet.</p>
+        <p className="text-xs text-center">Belum ada aktivitas.</p>
+        <p className="text-[10px] text-muted/60 text-center mt-1">Buat analisis baru untuk memulai.</p>
       </div>
     );
   }
 
   return (
     <div className="flex flex-col h-full">
-      <div className="px-3 py-2 border-b border-slate-700/50 shrink-0">
-        <h2 className="text-[10px] uppercase tracking-widest text-slate-500 font-semibold flex items-center gap-1">
+      <div className="px-3 py-2 border-b border-border/50 shrink-0">
+        <h2 className="text-[10px] uppercase tracking-widest text-muted font-semibold flex items-center gap-1">
           <Clock size={10} />
           Activity Timeline
         </h2>
       </div>
       <div className="flex-1 overflow-y-auto min-h-0 px-3 py-2">
         <div className="relative">
-          {/* Vertical line */}
-          <div className="absolute left-[7px] top-1 bottom-1 w-px bg-slate-700" />
+          <div className="absolute left-[7px] top-1 bottom-1 w-px bg-border" />
 
           {grouped.map(([day, dayEvents]) => (
             <div key={day} className="mb-3">
               <div className="flex items-center gap-2 mb-1.5">
-                <div className="w-[15px] h-[15px] rounded-full bg-slate-700 border-2 border-slate-600 shrink-0 z-10" />
-                <span className="text-[10px] font-medium text-slate-400">{formatDate(day)}</span>
+                <div className="w-[15px] h-[15px] rounded-full bg-surface3 border-2 border-border shrink-0 z-10" />
+                <span className="text-[10px] font-medium text-muted">{formatDate(day)}</span>
               </div>
               <div className="ml-6 space-y-1">
                 {dayEvents.map((ev) => (
                   <button
                     key={ev.id}
                     onClick={() => router.push(`/note/${ev.noteId}`)}
-                    className="w-full flex items-start gap-2 px-2 py-1.5 rounded-lg hover:bg-slate-800/60 transition-colors text-left"
+                    className="w-full flex items-start gap-2 px-2 py-1.5 rounded-lg hover:bg-surface2/60 transition-colors text-left"
                   >
                     <div className="mt-0.5 shrink-0">
-                      {ev.type === 'created' && <FileText size={10} className="text-indigo-400" />}
-                      {ev.type === 'updated' && <FileText size={10} className="text-blue-400" />}
-                      {ev.type === 'completed' && <CheckCircle2 size={10} className="text-emerald-400" />}
-                      {ev.type === 'overdue' && <AlertCircle size={10} className="text-red-400" />}
+                      {ev.type === 'created' && <FileText size={10} className="text-accent" />}
+                      {ev.type === 'updated' && <FileText size={10} className="text-info" />}
+                      {ev.type === 'completed' && <CheckCircle2 size={10} className="text-success" />}
+                      {ev.type === 'overdue' && <AlertCircle size={10} className="text-danger" />}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-[10px] text-slate-300 truncate leading-tight">{ev.title}</p>
-                      <p className="text-[8px] text-slate-600 truncate">{ev.noteTitle}</p>
+                      <p className="text-[10px] text-foreground/80 truncate leading-tight">{ev.title}</p>
+                      <p className="text-[8px] text-muted/60 truncate">{ev.noteTitle}</p>
                     </div>
-                    <span className="text-[9px] text-slate-600 shrink-0">
+                    <span className="text-[9px] text-muted/60 shrink-0">
                       {new Date(ev.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     </span>
                   </button>

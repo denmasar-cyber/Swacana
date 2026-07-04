@@ -1,6 +1,5 @@
 'use client';
 
-
 import { cn } from '@/lib/utils';
 
 export type NoteTabKey = 'chat' | 'mindmap' | 'mitigation';
@@ -24,7 +23,7 @@ export function NoteTabs({
   onChange: (v: NoteTabKey) => void;
 }) {
   return (
-    <div className="flex items-center gap-2 px-3 py-2 border-b border-slate-700 shrink-0">
+    <div className="flex items-center gap-2 px-3 py-2 border-b border-border shrink-0">
       {TABS.map((t) => {
         const active = t.key === value;
         return (
@@ -32,10 +31,10 @@ export function NoteTabs({
             key={t.key}
             onClick={() => onChange(t.key)}
             className={cn(
-              'text-xs px-3 py-1.5 rounded border transition-colors',
+              'text-xs px-3 py-1.5 rounded-lg border transition-all',
               active
-                ? 'bg-indigo-600/20 border-indigo-400/50 text-indigo-200'
-                : 'bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700',
+                ? 'bg-accent/15 border-accent/30 text-foreground font-medium'
+                : 'bg-surface2 border-border text-muted hover:text-foreground hover:bg-surface3',
             )}
           >
             {t.label}
@@ -45,4 +44,3 @@ export function NoteTabs({
     </div>
   );
 }
-

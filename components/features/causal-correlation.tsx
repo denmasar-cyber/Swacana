@@ -8,7 +8,6 @@ import {
   Background,
   BackgroundVariant,
   Controls,
-  MiniMap,
   type Node,
   type Edge,
 } from '@xyflow/react';
@@ -54,10 +53,10 @@ function computeCausalCorrelations(notes: Note[]): { nodes: Node[]; edges: Edge[
         content: note.content,
       },
       style: {
-        background: '#1e293b',
+        background: 'var(--surface)',
         border: `2px solid ${CAUSAL_COLORS[i % CAUSAL_COLORS.length]}40`,
         borderRadius: '12px',
-        color: '#e2e8f0',
+        color: 'var(--fg)',
         fontSize: '11px',
         padding: '8px 12px',
         width: 160,
@@ -144,34 +143,26 @@ export default function CausalCorrelationGraph() {
   return (
     <div className="flex flex-col h-full">
       {/* Stats cards */}
-      <div className="grid grid-cols-3 gap-2 px-3 py-2 border-b border-slate-700/50 shrink-0">
-        <div className="bg-slate-800/50 rounded-lg px-3 py-2 border border-slate-700/50">
-          <div className="flex items-center gap-1.5 text-[10px] text-slate-500 uppercase tracking-wider">
-            <FileText size={10} />
-            Analyses
+      <div className="grid grid-cols-3 gap-2 px-3 py-2 border-b border-border/50 shrink-0">
+        <div className="bg-surface2/50 rounded-lg px-3 py-2 border border-border/50">
+          <div className="flex items-center gap-1.5 text-[10px] text-muted uppercase tracking-wider">
+            <FileText size={10} /> Analyses
           </div>
-          <p className="text-lg font-bold text-slate-100 mt-0.5">{notes?.length ?? 0}</p>
+          <p className="text-lg font-bold text-foreground mt-0.5">{notes?.length ?? 0}</p>
         </div>
-        <div className="bg-slate-800/50 rounded-lg px-3 py-2 border border-slate-700/50">
-          <div className="flex items-center gap-1.5 text-[10px] text-slate-500 uppercase tracking-wider">
-            <Network size={10} />
-            Correlations
+        <div className="bg-surface2/50 rounded-lg px-3 py-2 border border-border/50">
+          <div className="flex items-center gap-1.5 text-[10px] text-muted uppercase tracking-wider">
+            <Network size={10} /> Correlations
           </div>
-          <p className="text-lg font-bold text-indigo-300 mt-0.5">{correlationCount}</p>
+          <p className="text-lg font-bold text-accent mt-0.5">{correlationCount}</p>
         </div>
-        <div className="bg-slate-800/50 rounded-lg px-3 py-2 border border-slate-700/50">
-          <div className="flex items-center gap-1.5 text-[10px] text-slate-500 uppercase tracking-wider">
-            <AlertTriangle size={10} />
-            Overdue
+        <div className="bg-surface2/50 rounded-lg px-3 py-2 border border-border/50">
+          <div className="flex items-center gap-1.5 text-[10px] text-muted uppercase tracking-wider">
+            <AlertTriangle size={10} /> Overdue
           </div>
-          <p className={cn(
-            'text-lg font-bold mt-0.5',
-            overdueCount > 0 ? 'text-red-400' : 'text-emerald-400'
-          )}>
+          <p className={cn('text-lg font-bold mt-0.5', overdueCount > 0 ? 'text-danger' : 'text-success')}>
             {overdueCount}
-            <span className="text-[10px] text-slate-500 font-normal ml-1">
-              / {totalMitigations} tasks
-            </span>
+            <span className="text-[10px] text-muted font-normal ml-1">/ {totalMitigations} tasks</span>
           </p>
         </div>
       </div>
@@ -179,12 +170,10 @@ export default function CausalCorrelationGraph() {
       {/* Causal correlation graph */}
       <div className="flex-1 min-h-0">
         {(!notes || notes.length === 0) ? (
-          <div className="h-full flex flex-col items-center justify-center text-slate-500 px-8">
+          <div className="h-full flex flex-col items-center justify-center text-muted px-8">
             <Network size={36} className="mb-3 opacity-20" />
             <p className="text-xs text-center">No analyses yet.</p>
-            <p className="text-[10px] text-slate-600 text-center mt-1">
-              Create an analysis to see the causal correlation network.
-            </p>
+            <p className="text-[10px] text-muted/60 text-center mt-1">Create an analysis to see the causal correlation network.</p>
           </div>
         ) : (
           <ReactFlow
@@ -197,35 +186,19 @@ export default function CausalCorrelationGraph() {
             maxZoom={2}
             onNodeClick={(_, node) => router.push(`/note/${node.id}`)}
           >
-            <Background variant={BackgroundVariant.Dots} color="#1e293b" gap={30} size={1} />
-            <Controls className="!bg-slate-800 !border-slate-700 !rounded-lg [&_button]:!border-slate-600 [&_button]:!text-slate-400 [&_button]:!bg-slate-800 [&_button]:hover:!bg-slate-700" />
-            <MiniMap
-              style={{ background: '#0f172a', border: '1px solid #1e293b' }}
-              nodeColor="#334155"
-              maskColor="rgba(15,23,42,0.7)"
-            />
+            <Background variant={BackgroundVariant.Dots} color="var(--border)" gap={30} size={1} />
+            <Controls className="!bg-surface2 !border-border !rounded-lg [&_button]:!border-border [&_button]:!text-muted [&_button]:!bg-surface2 [&_button]:hover:!bg-surface3" />
           </ReactFlow>
         )}
       </div>
 
       {/* Legend */}
       {notes && notes.length > 0 && (
-        <div className="px-3 py-1.5 border-t border-slate-700/50 shrink-0 flex items-center gap-3 text-[9px] text-slate-500">
-          <span className="flex items-center gap-1">
-            <span className="w-2 h-0.5 rounded bg-indigo-400 inline-block" />
-            Strong
-          </span>
-          <span className="flex items-center gap-1">
-            <span className="w-2 h-0.5 rounded bg-violet-400 inline-block" />
-            Moderate
-          </span>
-          <span className="flex items-center gap-1">
-            <span className="w-2 h-0.5 rounded bg-slate-500 inline-block" style={{ borderTop: '1px dashed' }} />
-            Weak
-          </span>
-          <span className="ml-auto text-slate-600">
-            Click a node to open analysis
-          </span>
+        <div className="px-3 py-1.5 border-t border-border/50 shrink-0 flex items-center gap-3 text-[9px] text-muted">
+          <span className="flex items-center gap-1"><span className="w-2 h-0.5 rounded bg-accent inline-block" /> Strong</span>
+          <span className="flex items-center gap-1"><span className="w-2 h-0.5 rounded bg-accent2 inline-block" /> Moderate</span>
+          <span className="flex items-center gap-1"><span className="w-2 h-0.5 rounded bg-muted inline-block" style={{ borderTop: '1px dashed' }} /> Weak</span>
+          <span className="ml-auto text-muted/60">Click a node to open analysis</span>
         </div>
       )}
     </div>

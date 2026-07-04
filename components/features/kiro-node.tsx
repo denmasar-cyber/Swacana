@@ -7,17 +7,17 @@ import type { KiroCanvasNode } from '@/lib/db';
 import { cn } from '@/lib/utils';
 
 const NODE_STYLES: Record<KiroCanvasNode['nodeType'], string> = {
-  ROOT_CAUSE: 'bg-slate-700 border-2 border-slate-400 text-slate-100',
-  DIAGNOSIS:  'bg-amber-900/60 border border-amber-500 text-amber-100',
-  IMPACT:     'bg-orange-900/60 border border-orange-500 text-orange-100',
-  MITIGATION: 'bg-emerald-900/60 border-2 border-emerald-400 text-emerald-100',
+  ROOT_CAUSE: 'bg-danger/15 border-2 border-danger/50 text-foreground',
+  DIAGNOSIS:  'bg-warning/15 border border-warning/50 text-foreground',
+  IMPACT:     'bg-accent2/15 border border-accent2/50 text-foreground',
+  MITIGATION: 'bg-success/15 border-2 border-success/50 text-foreground',
 };
 
 const NODE_BADGE: Record<KiroCanvasNode['nodeType'], string> = {
-  ROOT_CAUSE: 'bg-slate-500 text-slate-100',
-  DIAGNOSIS:  'bg-amber-600 text-white',
-  IMPACT:     'bg-orange-600 text-white',
-  MITIGATION: 'bg-emerald-600 text-white',
+  ROOT_CAUSE: 'bg-danger/30 text-danger',
+  DIAGNOSIS:  'bg-warning/30 text-warning',
+  IMPACT:     'bg-accent2/30 text-accent2',
+  MITIGATION: 'bg-success/30 text-success',
 };
 
 interface KiroNodeData extends KiroCanvasNode {
@@ -32,12 +32,12 @@ function KiroNode({ data }: NodeProps) {
   return (
     <div
       className={cn(
-        'rounded-lg px-3 py-2 w-[220px] shadow-lg',
+        'rounded-xl px-4 py-3 w-[220px] shadow-xl border',
         NODE_STYLES[node.nodeType],
-        isDone && 'opacity-60',
+        isDone && 'opacity-50',
       )}
     >
-      <Handle type="target" position={Position.Top} className="!bg-slate-400" />
+      <Handle type="target" position={Position.Top} className="!bg-border !w-3 !h-3 !border-2 !border-surface" />
 
       {/* Badge */}
       <span
@@ -57,37 +57,24 @@ function KiroNode({ data }: NodeProps) {
         {node.details}
       </p>
 
-      {/* Mitigation controls */}
       {node.nodeType === 'MITIGATION' && (
         <div className="mt-2 flex items-center gap-2">
-          <button
-            onClick={() => node.onToggleDone?.(node.id)}
+          <button onClick={() => node.onToggleDone?.(node.id)}
             className="flex items-center gap-1 text-[11px] hover:opacity-80 transition-opacity"
-            title={isDone ? 'Mark as pending' : 'Mark as done'}
-          >
-            {isDone ? (
-              <CheckSquare size={14} className="text-emerald-300" />
-            ) : (
-              <Square size={14} className="text-emerald-400" />
-            )}
+            title={isDone ? 'Mark as pending' : 'Mark as done'}>
+            {isDone ? <CheckSquare size={14} className="text-success" /> : <Square size={14} className="text-success" />}
             <span>{isDone ? 'Done' : 'Mark done'}</span>
           </button>
           {node.targetDate && (
-            <span
-              className={cn(
-                'text-[10px] ml-auto px-1.5 py-0.5 rounded',
-                isDone
-                  ? 'bg-emerald-500 text-white'
-                  : 'bg-emerald-800 text-emerald-300',
-              )}
-            >
+            <span className={cn('text-[10px] ml-auto px-1.5 py-0.5 rounded',
+              isDone ? 'bg-success text-white' : 'bg-success/20 text-success')}>
               {node.targetDate}
             </span>
           )}
         </div>
       )}
 
-      <Handle type="source" position={Position.Bottom} className="!bg-slate-400" />
+      <Handle type="source" position={Position.Bottom} className="!bg-border !w-3 !h-3 !border-2 !border-surface" />
     </div>
   );
 }

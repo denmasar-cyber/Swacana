@@ -1,17 +1,17 @@
-'use client';
-
 /**
- * Swacana Real-time Sync
+ * SWACANA v2 — Real-time Sync (Server-backed)
  *
  * Two-tier sync:
- * 1. BroadcastChannel — same-browser cross-tab sync (free)
- * 2. WebSocket — cross-device sync via relay server
+ * 1. WebSocket to VPS — cross-device, persistent
+ * 2. BroadcastChannel — same-browser fallback (free)
+ *
+ * Now with user authentication — only the owner sees their data.
  */
 
 type SyncCallback = (msg: SyncMessage) => void;
 
 export interface SyncMessage {
-  type: 'join' | 'leave' | 'update' | 'cursor' | 'presence';
+  type: 'join' | 'leave' | 'update' | 'cursor' | 'presence' | 'note-change';
   noteId?: string;
   userId?: string;
   userName?: string;
@@ -27,19 +27,29 @@ export interface CollabUser {
 let ws: WebSocket | null = null;
 let bc: BroadcastChannel | null = null;
 let currentNoteId: string | null = null;
-const currentUserId = `local-${Math.random().toString(36).slice(2, 8)}`;
-let currentUserName = `User ${currentUserId.slice(-4)}`;
+let currentUserId: string = '';
+let currentUserName = '';
 const listeners = new Set<SyncCallback>();
 let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+let reconnectAttempts = 0;
+const MAX_RECONNECT = 10;
 
-// ─── BroadcastChannel (same-browser) ────────────────────────────────────
+// ─── Initialization ─────────────────────────────────────────────────────────
+
+export function initSync(userId: string, userName: string) {
+  currentUserId = userId;
+  currentUserName = userName;
+  initBroadcastChannel();
+  connectWebSocket();
+}
+
+// ─── BroadcastChannel (same-browser) ────────────────────────────────────────
 
 function initBroadcastChannel() {
   if (typeof window === 'undefined') return;
   try {
     bc = new BroadcastChannel('swacana-sync');
     bc.onmessage = (event: MessageEvent<SyncMessage>) => {
-      // Don't echo back our own messages
       if (event.data.userId === currentUserId) return;
       notifyListeners(event.data);
     };
@@ -52,11 +62,10 @@ function sendBroadcast(msg: SyncMessage) {
   bc?.postMessage(msg);
 }
 
-// ─── WebSocket (cross-device) ────────────────────────────────────────────
+// ─── WebSocket (server-backed) ──────────────────────────────────────────────
 
 function getWsUrl(): string | null {
   if (typeof window === 'undefined') return null;
-  // Default to localhost:3001, configurable via env or query param
   const params = new URLSearchParams(window.location.search);
   return params.get('ws') || process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:3001';
 }
@@ -70,6 +79,13 @@ function connectWebSocket() {
 
     ws.onopen = () => {
       console.log('[sync] WebSocket connected');
+      reconnectAttempts = 0;
+      // Authenticate
+      ws?.send(JSON.stringify({
+        type: 'auth',
+        userId: currentUserId,
+        userName: currentUserName,
+      }));
       // Re-join current room
       if (currentNoteId) {
         sendMessage({ type: 'join', noteId: currentNoteId });
@@ -78,25 +94,24 @@ function connectWebSocket() {
 
     ws.onmessage = (event: MessageEvent) => {
       try {
-        const msg: SyncMessage = JSON.parse(event.data as string);
+        const msg: SyncMessage = JSON.parse(event.data);
         notifyListeners(msg);
-      } catch {
-        // ignore
-      }
+      } catch { /* ignore */ }
     };
 
     ws.onclose = () => {
       console.log('[sync] WebSocket disconnected');
       ws = null;
-      // Auto-reconnect after 3s
-      reconnectTimer = setTimeout(() => connectWebSocket(), 3000);
+      // Exponential backoff reconnect
+      reconnectAttempts++;
+      if (reconnectAttempts <= MAX_RECONNECT) {
+        const delay = Math.min(1000 * Math.pow(2, reconnectAttempts), 30000);
+        reconnectTimer = setTimeout(() => connectWebSocket(), delay);
+      }
     };
 
-    ws.onerror = () => {
-      ws?.close();
-    };
+    ws.onerror = () => ws?.close();
   } catch {
-    console.warn('[sync] WebSocket connection failed (server may not be running)');
     ws = null;
   }
 }
@@ -107,11 +122,11 @@ function sendWebSocket(msg: SyncMessage) {
   }
 }
 
-// ─── Public API ─────────────────────────────────────────────────────────
+// ─── Public API ─────────────────────────────────────────────────────────────
 
 function notifyListeners(msg: SyncMessage) {
   for (const cb of listeners) {
-    try { cb(msg); } catch { /* ignore callback error */ }
+    try { cb(msg); } catch { /* ignore */ }
   }
 }
 
@@ -155,9 +170,8 @@ export function sendCursorUpdate(data: Record<string, unknown>) {
   sendMessage({ type: 'cursor', noteId: currentNoteId ?? undefined, data });
 }
 
-export function initSync() {
-  initBroadcastChannel();
-  connectWebSocket();
+export function notifyNoteChange(noteId: string) {
+  sendMessage({ type: 'note-change', noteId });
 }
 
 export function destroySync() {
@@ -168,4 +182,5 @@ export function destroySync() {
   bc = null;
   if (reconnectTimer) clearTimeout(reconnectTimer);
   listeners.clear();
+  reconnectAttempts = 0;
 }

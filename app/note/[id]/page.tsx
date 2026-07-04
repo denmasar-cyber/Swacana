@@ -1,4 +1,4 @@
-import NoteWorkspace from './note-workspace';
+import NoteWorkspace from '@/components/features/note-workspace';
 
 interface Props {
   params: Promise<{ id: string }>;

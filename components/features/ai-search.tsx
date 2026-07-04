@@ -143,58 +143,37 @@ export default function AISearch() {
       <div className="px-3 py-2 border-b border-slate-700/50 shrink-0">
         <form onSubmit={handleSearch} className="flex gap-1">
           <div className="relative flex-1">
-            <Search size={12} className="absolute left-2 top-1/2 -translate-y-1/2 text-slate-500" />
+            <Search size={12} className="absolute left-2 top-1/2 -translate-y-1/2 text-muted" />
             <input
               ref={inputRef}
               type="text"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search across all analyses..."
-              className="w-full bg-slate-800 text-slate-200 text-[11px] rounded pl-6 pr-7 py-1.5 border border-slate-600 focus:outline-none focus:border-indigo-500/50 placeholder:text-slate-600"
+              className="w-full bg-surface2 text-foreground text-[11px] rounded pl-6 pr-7 py-1.5 border border-border focus:outline-none focus:border-accent/50 placeholder:text-muted"
             />
             {query && (
-              <button
-                type="button"
-                onClick={clearSearch}
-                className="absolute right-1.5 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300"
-              >
+              <button type="button" onClick={clearSearch} className="absolute right-1.5 top-1/2 -translate-y-1/2 text-muted hover:text-foreground">
                 <X size={11} />
               </button>
             )}
           </div>
-          <button
-            type="submit"
-            disabled={!query.trim() || isSearching}
-            className="px-2 py-1.5 rounded bg-indigo-600 hover:bg-indigo-500 text-white text-[10px] transition-colors disabled:opacity-40"
-          >
+          <button type="submit" disabled={!query.trim() || isSearching}
+            className="px-2 py-1.5 rounded bg-accent hover:opacity-80 text-white text-[10px] transition-colors disabled:opacity-40">
             {isSearching ? <Loader2 size={11} className="animate-spin" /> : <Search size={11} />}
           </button>
         </form>
 
-        {/* Mode toggle */}
         <div className="flex items-center gap-1 mt-1.5">
-          <button
-            onClick={() => setSearchMode('simple')}
-            className={cn(
-              'text-[9px] px-1.5 py-0.5 rounded transition-colors',
-              searchMode === 'simple'
-                ? 'bg-indigo-600/20 text-indigo-300 border border-indigo-500/30'
-                : 'bg-slate-800 text-slate-400 border border-slate-700',
-            )}
-          >
+          <button onClick={() => setSearchMode('simple')}
+            className={cn('text-[9px] px-1.5 py-0.5 rounded transition-colors',
+              searchMode === 'simple' ? 'bg-accent/20 text-accent border border-accent/30' : 'bg-surface2 text-muted border border-border')}>
             Simple
           </button>
-          <button
-            onClick={() => setSearchMode('ai')}
-            className={cn(
-              'text-[9px] px-1.5 py-0.5 rounded transition-colors flex items-center gap-0.5',
-              searchMode === 'ai'
-                ? 'bg-indigo-600/20 text-indigo-300 border border-indigo-500/30'
-                : 'bg-slate-800 text-slate-400 border border-slate-700',
-            )}
-          >
-            <Sparkles size={8} />
-            AI Semantic
+          <button onClick={() => setSearchMode('ai')}
+            className={cn('text-[9px] px-1.5 py-0.5 rounded transition-colors flex items-center gap-0.5',
+              searchMode === 'ai' ? 'bg-accent/20 text-accent border border-accent/30' : 'bg-surface2 text-muted border border-border')}>
+            <Sparkles size={8} /> AI Semantic
           </button>
         </div>
       </div>
@@ -202,50 +181,37 @@ export default function AISearch() {
       {/* Results */}
       <div className="flex-1 overflow-y-auto min-h-0">
         {!hasSearched ? (
-          <div className="h-full flex flex-col items-center justify-center text-slate-500 px-4">
+          <div className="h-full flex flex-col items-center justify-center text-muted px-4">
             <Search size={24} className="mb-2 opacity-30" />
             <p className="text-xs text-center">Search across all your analyses.</p>
-            <p className="text-[10px] text-slate-600 text-center mt-1">
-              {searchMode === 'ai'
-                ? 'AI mode uses WebLLM for semantic ranking.'
-                : 'Simple mode matches keywords in titles and content.'}
+            <p className="text-[10px] text-muted/60 text-center mt-1">
+              {searchMode === 'ai' ? 'AI mode uses WebLLM for semantic ranking.' : 'Simple mode matches keywords in titles and content.'}
             </p>
           </div>
         ) : results.length === 0 ? (
-          <div className="h-full flex flex-col items-center justify-center text-slate-500 px-4">
+          <div className="h-full flex flex-col items-center justify-center text-muted px-4">
             <FileText size={24} className="mb-2 opacity-30" />
             <p className="text-xs text-center">No results found.</p>
-            <p className="text-[10px] text-slate-600 text-center mt-1">Try different search terms.</p>
+            <p className="text-[10px] text-muted/60 text-center mt-1">Try different search terms.</p>
           </div>
         ) : (
-          <div className="divide-y divide-slate-700/50">
+          <div className="divide-y divide-border/50">
             {results.map((result) => (
-              <button
-                key={result.note.id}
-                onClick={() => router.push(`/note/${result.note.id}`)}
-                className="w-full flex items-start gap-2 px-3 py-2.5 hover:bg-slate-800/50 transition-colors text-left"
-              >
-                <div className="mt-0.5 shrink-0">
-                  <FileText size={12} className="text-slate-400" />
-                </div>
+              <button key={result.note.id} onClick={() => router.push(`/note/${result.note.id}`)}
+                className="w-full flex items-start gap-2 px-3 py-2.5 hover:bg-surface2/50 transition-colors text-left">
+                <div className="mt-0.5 shrink-0"><FileText size={12} className="text-muted" /></div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-1.5">
-                    <span className="text-xs font-medium text-slate-200 truncate">
-                      {result.note.title}
-                    </span>
-                    <span className="text-[9px] px-1 py-0.5 rounded bg-slate-700 text-slate-400 shrink-0 flex items-center gap-0.5">
-                      <ChevronRight size={8} />
-                      {result.relevance}
+                    <span className="text-xs font-medium text-foreground truncate">{result.note.title}</span>
+                    <span className="text-[9px] px-1 py-0.5 rounded bg-surface3 text-muted shrink-0 flex items-center gap-0.5">
+                      <ChevronRight size={8} /> {result.relevance}
                     </span>
                   </div>
                   {result.matchContext && (
-                    <p className="text-[10px] text-slate-500 mt-0.5 line-clamp-2 leading-snug">
-                      {result.matchContext}
-                    </p>
+                    <p className="text-[10px] text-muted/80 mt-0.5 line-clamp-2 leading-snug">{result.matchContext}</p>
                   )}
-                  <p className="text-[9px] text-slate-600 mt-0.5">
-                    {searchMode === 'ai' && 'AI ranked · '}
-                    {new Date(result.note.updatedAt).toLocaleDateString()}
+                  <p className="text-[9px] text-muted/60 mt-0.5">
+                    {searchMode === 'ai' && 'AI ranked · '}{new Date(result.note.updatedAt).toLocaleDateString()}
                   </p>
                 </div>
               </button>
@@ -254,11 +220,8 @@ export default function AISearch() {
         )}
       </div>
 
-      {/* Status */}
-      <div className="px-3 py-1 border-t border-slate-700/50 shrink-0 text-[9px] text-slate-600">
-        {hasSearched
-          ? `${results.length} result${results.length !== 1 ? 's' : ''} · ${notes?.length ?? 0} analyses`
-          : `${notes?.length ?? 0} analyses indexed`}
+      <div className="px-3 py-1 border-t border-border/50 shrink-0 text-[9px] text-muted/60">
+        {hasSearched ? `${results.length} result${results.length !== 1 ? 's' : ''} · ${notes?.length ?? 0} analyses` : `${notes?.length ?? 0} analyses indexed`}
       </div>
     </div>
   );

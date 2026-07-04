@@ -24,8 +24,9 @@ export default function CollaborationBar({ noteId }: Props) {
   const [myId, setMyId] = useState<string>('');
 
   useEffect(() => {
-    setMyId(getCurrentUser().userId);
-    initSync();
+    const user = getCurrentUser();
+    setMyId(user.userId);
+    initSync(user.userId, user.userName);
 
     // Join the note room
     joinNote(noteId);
@@ -78,33 +79,19 @@ export default function CollaborationBar({ noteId }: Props) {
   if (users.length === 0 && !isConnected) return null;
 
   return (
-    <div className="flex items-center gap-2 px-2 py-1 rounded bg-slate-800/50 border border-slate-700/50">
-      <Users size={11} className="text-slate-400" />
-      {/* Connected indicator */}
+    <div className="flex items-center gap-2 px-2 py-1 rounded bg-surface2/50 border border-border/50">
+      <Users size={11} className="text-muted" />
       <span className="relative flex h-2 w-2">
-        <span
-          className={cn(
-            'animate-ping absolute inline-flex h-full w-full rounded-full opacity-75',
-            isConnected ? 'bg-emerald-400' : 'bg-slate-500',
-          )}
-        />
-        <span
-          className={cn(
-            'relative inline-flex rounded-full h-2 w-2',
-            isConnected ? 'bg-emerald-500' : 'bg-slate-500',
-          )}
-        />
+        <span className={cn('animate-ping absolute inline-flex h-full w-full rounded-full opacity-75', isConnected ? 'bg-success' : 'bg-muted')} />
+        <span className={cn('relative inline-flex rounded-full h-2 w-2', isConnected ? 'bg-success' : 'bg-muted')} />
       </span>
-      {/* User avatars */}
       <div className="flex items-center -space-x-1">
         {users.slice(0, 5).map((user) => (
           <div
             key={user.userId}
             className={cn(
-              'w-5 h-5 rounded-full flex items-center justify-center text-[8px] font-bold border-2 border-slate-900',
-              user.userId === myId
-                ? 'bg-indigo-600 text-white border-indigo-400'
-                : 'bg-slate-600 text-slate-200 border-slate-700',
+              'w-5 h-5 rounded-full flex items-center justify-center text-[8px] font-bold border-2 border-background',
+              user.userId === myId ? 'bg-accent text-white border-accent2' : 'bg-surface3 text-foreground/80 border-border',
             )}
             title={user.userName}
           >
@@ -113,19 +100,11 @@ export default function CollaborationBar({ noteId }: Props) {
         ))}
       </div>
       {users.length > 0 && (
-        <span className="text-[9px] text-slate-400">
-          {users
-            .filter((u) => u.userId !== myId)
-            .map((u) => u.userName)
-            .join(', ') || 'Only you'}
+        <span className="text-[9px] text-muted">
+          {users.filter((u) => u.userId !== myId).map((u) => u.userName).join(', ') || 'Only you'}
         </span>
       )}
-      {/* Connection status */}
-      {isConnected ? (
-        <Wifi size={10} className="text-emerald-500/50 ml-auto" />
-      ) : (
-        <WifiOff size={10} className="text-slate-600 ml-auto" />
-      )}
+      {isConnected ? <Wifi size={10} className="text-success/50 ml-auto" /> : <WifiOff size={10} className="text-muted/60 ml-auto" />}
     </div>
   );
 }

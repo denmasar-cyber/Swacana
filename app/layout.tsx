@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
@@ -12,9 +12,33 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+const APP_NAME = "Swacana";
+const APP_DESC = "AI-Powered Decision Intelligence — Petakan diri, pikiran, dan kehidupan";
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  viewportFit: "cover",
+};
+
 export const metadata: Metadata = {
-  title: "Swacana — AI-Powered Decision Intelligence",
-  description: "Local-first AI life management with decision trees, causal analysis, and real-time collaboration",
+  title: `${APP_NAME} — AI-Powered Decision Intelligence`,
+  description: APP_DESC,
+  manifest: "/manifest.json",
+  icons: {
+    icon: "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%237c3aed'/><text x='16' y='22' font-size='18' text-anchor='middle' fill='white' font-weight='bold'>S</text></svg>",
+    apple: "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%237c3aed'/><text x='16' y='22' font-size='18' text-anchor='middle' fill='white' font-weight='bold'>S</text></svg>",
+  },
+  appleWebApp: {
+    capable: true,
+    title: APP_NAME,
+    statusBarStyle: "black-translucent",
+  },
+  other: {
+    "mobile-web-app-capable": "yes",
+  },
 };
 
 export default function RootLayout({
@@ -26,11 +50,9 @@ export default function RootLayout({
     <html
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased dark`}
+      suppressHydrationWarning
     >
-      <head>
-        <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%238b5cf6'/><text x='16' y='22' font-size='18' text-anchor='middle' fill='white' font-weight='bold'>S</text></svg>" />
-      </head>
-      <body className="h-full bg-[#0a0a0f] text-[#e8e8ed]" suppressHydrationWarning>
+      <body className="h-full" suppressHydrationWarning>
         {children}
       </body>
     </html>

@@ -1,9 +1,12 @@
 'use client';
 
 import { useState, useCallback, useEffect, useRef } from 'react';
-import { Edit3, FileSearch, Database, Sparkles, Check, X, Save } from 'lucide-react';
+import { Edit3, FileSearch, Database, Sparkles, Check, X, Save, Maximize2, Minimize2, BookOpen, Clock } from 'lucide-react';
 import { db } from '@/lib/db';
 import { cn } from '@/lib/utils';
+import { streamLLM } from '@/lib/omni-client';
+import { isEngineLoaded, getCurrentModelId, DEFAULT_MODEL_ID } from '@/lib/webllm-client';
+import { buildAugmentedPrompt } from '@/lib/rag/retrieval';
 
 interface AIAction {
   icon: typeof Edit3;
@@ -13,10 +16,16 @@ interface AIAction {
 }
 
 const AI_ACTIONS: AIAction[] = [
-  { icon: Edit3, label: 'Edit', action: 'edit', description: 'AI-powered editing & rewriting' },
-  { icon: FileSearch, label: 'Review', action: 'review', description: 'AI review & feedback' },
-  { icon: Database, label: 'Scrap Data', action: 'scrap', description: 'Extract & analyze data from text' },
+  { icon: Edit3, label: 'Edit', action: 'edit', description: 'Perbaiki tata bahasa & struktur' },
+  { icon: FileSearch, label: 'Review', action: 'review', description: 'Review & feedback otomatis' },
+  { icon: Database, label: 'Scrap', action: 'scrap', description: 'Ekstrak data terstruktur' },
 ];
+
+const ACTION_PROMPTS: Record<string, string> = {
+  edit: `You are an expert editor. Improve the following text by fixing grammar, spelling, clarity, and structure. Preserve the original meaning and tone. Return ONLY the improved text without any explanation or commentary.`,
+  review: `You are an expert reviewer. Analyze the following text and provide structured feedback covering:\n1. Grammar & Spelling issues found\n2. Clarity & Structure rating\n3. Completeness & accuracy notes\n4. Specific suggestions for improvement\n\nFormat your response in clear sections.`,
+  scrap: `You are a data extraction specialist. Extract and organize structured information from the following text. Identify:\n- Key entities & terms\n- Dates & deadlines mentioned\n- Action items & decisions\n- References & sources cited\n- Main topics & themes\n\nPresent the extracted data in a clean, structured format using bullet points and sections.`,
+};
 
 interface Props {
   noteId: string;
@@ -30,21 +39,17 @@ export default function NoteEditor({ noteId, initialContent = '' }: Props) {
   const [isProcessing, setIsProcessing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
-  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [aiError, setAiError] = useState<string | null>(null);
+  const [expanded, setExpanded] = useState(false);
+  const abortRef = useRef<AbortController | null>(null);
   const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const contentRef = useRef(content);
-  useEffect(() => {
-    contentRef.current = content;
-  }, [content]);
+  useEffect(() => { contentRef.current = content; }, [content]);
 
-  // ── Debounced save to IndexedDB ──
   const saveToDb = useCallback(async (text: string) => {
     setIsSaving(true);
     try {
-      await db.notes.update(noteId, {
-        content: text,
-        updatedAt: new Date().toISOString(),
-      });
+      await db.notes.update(noteId, { content: text, updatedAt: new Date().toISOString() });
       setLastSaved(new Date());
     } catch (err) {
       console.error('[NoteEditor] Save failed:', err);
@@ -56,135 +61,190 @@ export default function NoteEditor({ noteId, initialContent = '' }: Props) {
   const handleChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const text = e.target.value;
     setContent(text);
-
-    // Debounced save - 800ms after last keystroke
     if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
-    saveTimeoutRef.current = setTimeout(() => {
-      saveToDb(text);
-    }, 800);
+    saveTimeoutRef.current = setTimeout(() => saveToDb(text), 800);
   }, [saveToDb]);
 
-  // Save on unmount
   useEffect(() => {
     return () => {
       if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
-      if (contentRef.current) {
-        saveToDb(contentRef.current);
-      }
+      if (contentRef.current) saveToDb(contentRef.current);
     };
   }, [saveToDb]);
 
   const handleAIAction = useCallback(async (action: 'edit' | 'review' | 'scrap') => {
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
+
     setActiveAction(action);
     setIsProcessing(true);
     setAiResult(null);
-    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    setAiError(null);
 
-    const placeholders = {
-      edit: 'AI will help improve your writing style, grammar, and clarity...\n\nSelected text improvements will appear here.',
-      review: 'AI will analyze your content for:\n• Grammar & spelling\n• Clarity & structure\n• Completeness & accuracy\n\nClick "Apply" to accept suggestions.',
-      scrap: 'AI will extract structured data from your note:\n• Key entities & terms\n• Dates & deadlines\n• Action items & decisions\n• References & sources',
-    };
-
-    timeoutRef.current = setTimeout(() => {
-      setAiResult(placeholders[action]);
+    const currentContent = contentRef.current;
+    if (!currentContent.trim()) {
+      setAiError('Belum ada konten. Tulis catatan terlebih dahulu.');
       setIsProcessing(false);
-    }, 800);
+      return;
+    }
+
+    const modelId = getCurrentModelId() || DEFAULT_MODEL_ID;
+    if (!isEngineLoaded(modelId)) {
+      setAiError('Model AI belum di-load. Muat model di panel AI Chat terlebih dahulu.');
+      setIsProcessing(false);
+      return;
+    }
+
+    try {
+      const { systemPrompt } = await buildAugmentedPrompt(noteId, currentContent, ACTION_PROMPTS[action]);
+      let resultBuffer = '';
+      await streamLLM(currentContent, modelId, (chunk) => {
+        resultBuffer += chunk;
+        setAiResult(resultBuffer);
+      }, controller.signal, () => {}, systemPrompt);
+    } catch (err) {
+      if ((err as Error).name !== 'AbortError') {
+        setAiError(`AI gagal: ${(err as Error).message}`);
+      }
+    } finally {
+      if (!controller.signal.aborted) setIsProcessing(false);
+    }
   }, []);
 
-  const dismissResult = () => {
+  const handleApply = useCallback(() => {
+    if (!aiResult) return;
+    if (activeAction === 'edit') {
+      setContent(aiResult);
+      saveToDb(aiResult);
+    } else {
+      const updated = contentRef.current + '\n\n--- AI Analysis ---\n\n' + aiResult;
+      setContent(updated);
+      saveToDb(updated);
+    }
     setActiveAction(null);
     setAiResult(null);
+  }, [aiResult, activeAction, saveToDb]);
+
+  const dismissResult = () => {
+    abortRef.current?.abort();
+    setActiveAction(null);
+    setAiResult(null);
+    setAiError(null);
   };
 
-  // eslint-disable-next-line react-hooks/purity — display-only relative time
-  const secondsSinceSave = lastSaved ? Math.floor((Date.now() - lastSaved.getTime()) / 1000) : 0;
+  const [secondsSinceSave, setSecondsSinceSave] = useState(0);
+  const lastSavedRef = useRef<Date | null>(null);
+
+  useEffect(() => {
+    lastSavedRef.current = lastSaved;
+    setSecondsSinceSave(lastSaved ? Math.floor((Date.now() - lastSaved.getTime()) / 1000) : 0);
+  }, [lastSaved]);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (lastSavedRef.current) {
+        const secs = Math.floor((Date.now() - lastSavedRef.current.getTime()) / 1000);
+        setSecondsSinceSave(secs);
+      }
+    }, 10000);
+    return () => clearInterval(interval);
+  }, []);
 
   return (
-    <div className="flex flex-col h-full">
-      {/* AI Toolbar */}
-      <div className="flex items-center gap-1.5 px-2 py-1.5 border-b border-slate-700 shrink-0">
-        <span className="text-[10px] uppercase tracking-widest text-slate-500 font-semibold mr-2">AI Tools</span>
+    <div className={cn('flex flex-col h-full transition-all', expanded && 'fixed inset-0 z-50 bg-surface')}>
+      {/* ── Tool Bar ── */}
+      <div className="flex items-center gap-1.5 px-3 py-2 border-b border-border shrink-0 bg-surface/50">
+        <BookOpen size={12} className="text-accent/60" />
+        <span className="text-[9px] uppercase tracking-widest text-muted font-semibold mr-2">Catatan</span>
+
+        <span className="w-px h-3 bg-border mx-0.5" />
+
+        {/* AI Quick Actions */}
         {AI_ACTIONS.map((action) => (
-          <button
-            key={action.action}
-            onClick={() => handleAIAction(action.action)}
-            disabled={isProcessing}
+          <button key={action.action} onClick={() => handleAIAction(action.action)} disabled={isProcessing}
             className={cn(
-              'flex items-center gap-1 text-[11px] px-2 py-1 rounded transition-colors',
-              activeAction === action.action
-                ? 'bg-indigo-600/20 text-indigo-300 border border-indigo-500/30'
-                : 'bg-slate-800 text-slate-300 hover:bg-slate-700 border border-slate-700',
+              'tool-btn text-[10px] gap-1 px-2',
+              activeAction === action.action && 'bg-accent/12 text-accent',
               isProcessing && 'opacity-50 cursor-not-allowed',
             )}
-            title={action.description}
-          >
-            <action.icon size={12} />
+            title={action.description}>
+            <action.icon size={11} />
             {action.label}
           </button>
         ))}
-        {/* Save indicator */}
-        <div className="ml-auto flex items-center gap-1">
+
+        <div className="ml-auto flex items-center gap-2">
           {isSaving ? (
-            <span className="flex items-center gap-0.5 text-[9px] text-slate-500">
+            <span className="flex items-center gap-1 text-[9px] text-muted">
               <Save size={9} className="animate-pulse" />
-              Saving...
+              Menyimpan...
             </span>
           ) : lastSaved ? (
-            <span className="text-[9px] text-slate-600">
-              Saved {secondsSinceSave}s ago
+            <span className="text-[9px] text-muted/60">
+              Tersimpan {secondsSinceSave < 5 ? 'baru saja' : `${secondsSinceSave}s`}
             </span>
           ) : null}
-        </div>
-        {activeAction && (
-          <button
-            onClick={dismissResult}
-            className="p-1 rounded hover:bg-slate-700 text-slate-400 hover:text-slate-100 transition-colors"
-            title="Dismiss"
-          >
-            <X size={12} />
+
+          <button onClick={() => setExpanded(!expanded)}
+            className="tool-btn" title={expanded ? 'Kecilkan' : 'Perbesar'}>
+            {expanded ? <Minimize2 size={12} /> : <Maximize2 size={12} />}
           </button>
-        )}
+
+          {activeAction && (
+            <button onClick={dismissResult} className="tool-btn hover:!text-danger" title="Tutup">
+              <X size={12} />
+            </button>
+          )}
+        </div>
       </div>
 
-      {/* Editor / AI Result Area */}
+      {/* ── Content Area ── */}
       <div className="flex-1 min-h-0 flex">
-        <div className={cn('flex-1 flex flex-col min-h-0', aiResult && 'border-r border-slate-700')}>
-          <div className="px-2 py-1 text-[10px] text-slate-500 uppercase tracking-wider shrink-0 flex items-center gap-2">
-            <span>Manual Notes</span>
-            <span className="text-[9px] text-slate-600 font-normal normal-case">
-              ({content.length} chars)
-            </span>
-          </div>
+        <div className={cn('flex-1 flex flex-col min-h-0', aiResult && 'border-r border-border/50')}>
           <textarea
             value={content}
             onChange={handleChange}
-            placeholder="Write your analysis, thoughts, or paste text here... Auto-saves to your local database. The AI tools above can help edit, review, and extract data from your notes."
-            className="flex-1 bg-transparent text-slate-100 text-xs leading-relaxed px-2 py-1 resize-none focus:outline-none placeholder:text-slate-600 font-mono"
+            placeholder="Tulis catatan, diary, curhatan, atau tujuanmu di sini...
+AI akan otomatis membantu memetakan solusi dan plan.
+
+✨ Tips: Makin detail tulisanmu, makin baik insight yang dihasilkan."
+            className="flex-1 bg-transparent text-foreground text-sm leading-relaxed px-5 py-4 resize-none focus:outline-none placeholder:text-muted/30 note-scroll"
           />
         </div>
 
-        {aiResult && (
-          <div className="w-1/2 flex flex-col min-h-0">
-            <div className="px-2 py-1 text-[10px] text-indigo-400 uppercase tracking-wider shrink-0 flex items-center gap-1">
-              <Sparkles size={10} />
-              {activeAction === 'edit' && 'AI Edit'}
-              {activeAction === 'review' && 'AI Review'}
-              {activeAction === 'scrap' && 'AI Scrap'}
+        {/* AI Result Panel */}
+        {(aiResult || aiError) && (
+          <div className="w-1/2 flex flex-col min-h-0 bg-surface2/30">
+            <div className="px-4 py-2 border-b border-border/50 shrink-0 flex items-center gap-1.5">
+              <Sparkles size={10} className="text-accent" />
+              <span className="text-[9px] uppercase tracking-wider text-accent font-semibold">
+                {activeAction === 'edit' && 'AI Edit'}
+                {activeAction === 'review' && 'AI Review'}
+                {activeAction === 'scrap' && 'AI Ekstrak'}
+              </span>
             </div>
-            <div className="flex-1 overflow-y-auto px-2 py-1">
+            <div className="flex-1 overflow-y-auto px-4 py-3 note-scroll">
               {isProcessing ? (
-                <div className="flex items-center gap-2 text-slate-500 text-xs">
-                  <Sparkles size={12} className="animate-pulse text-indigo-400" /> Processing...
+                <div className="flex items-center gap-2 text-muted text-xs">
+                  <Sparkles size={12} className="animate-pulse text-accent" /> Memproses...
+                </div>
+              ) : aiError ? (
+                <div className="flex items-start gap-2 text-danger text-xs px-3 py-2 rounded-xl bg-danger/10">
+                  <span>⚠️</span>
+                  <span>{aiError}</span>
                 </div>
               ) : (
-                <pre className="text-[11px] text-slate-300 whitespace-pre-wrap font-mono leading-relaxed">{aiResult}</pre>
+                <pre className="text-xs text-foreground whitespace-pre-wrap font-mono leading-relaxed">{aiResult}</pre>
               )}
             </div>
-            {!isProcessing && (
-              <div className="px-2 py-1 border-t border-slate-700 flex gap-2 shrink-0">
-                <button className="flex items-center gap-1 text-[10px] bg-indigo-600 hover:bg-indigo-500 text-white px-2 py-1 rounded transition-colors">
-                  <Check size={10} /> Apply
+            {!isProcessing && aiResult && !aiError && (
+              <div className="px-4 py-2 border-t border-border/50 flex gap-2 shrink-0">
+                <button onClick={handleApply} className="clay-btn clay-btn-sm flex items-center gap-1.5">
+                  <Check size={10} /> Terapkan
+                </button>
+                <button onClick={dismissResult} className="px-3 py-1.5 text-[10px] rounded-xl bg-surface2 text-muted hover:text-foreground border border-border transition-all">
+                  <X size={10} className="inline mr-1" /> Batal
                 </button>
               </div>
             )}

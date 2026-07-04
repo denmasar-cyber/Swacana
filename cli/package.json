@@ -1,0 +1,64 @@
+{
+  "name": "swacana",
+  "version": "1.1.0",
+  "description": "SWACANA — Personal AI Desk. 100% lokal, gratis, tanpa API key. Otomatis mencatat, merencanakan, dan mengorganisir informasi dari laptop Anda.",
+  "keywords": [
+    "ai",
+    "cli",
+    "local-ai",
+    "note-taking",
+    "personal-assistant",
+    "rag",
+    "offline",
+    "free",
+    "open-source",
+    "windows"
+  ],
+  "homepage": "https://github.com/swacana/swacana#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/swacana/swacana.git"
+  },
+  "license": "MIT",
+  "author": "SWACANA Team",
+  "type": "module",
+  "bin": {
+    "swacana": "dist/index.js"
+  },
+  "files": [
+    "dist/",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsx src/index.ts",
+    "start": "node dist/index.js",
+    "postbuild": "node -e \"const fs=require('fs');const p='dist/index.js';let c=fs.readFileSync(p,'utf8');if(!c.startsWith('#!'))fs.writeFileSync(p,'#!/usr/bin/env node\\n'+c,'utf8')\"",
+    "prepublishOnly": "npm run build",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "@xenova/transformers": "^2.17.2",
+    "chokidar": "^4.0.3",
+    "commander": "^12.1.0",
+    "playwright": "^1.52.0",
+    "sql.js": "^1.11.0",
+    "uuid": "^11.1.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.0",
+    "@types/uuid": "^10.0.0",
+    "typescript": "^5.7.0",
+    "tsx": "^4.19.0",
+    "vitest": "^4.1.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

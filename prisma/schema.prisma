@@ -1,0 +1,296 @@
+// SWACANA v2 — Dual Storage Architecture
+// PostgreSQL for structured data + MinIO for object/file storage
+// Laptop = thin client (zero footprint)
+
+generator client {
+  provider = "prisma-client"
+  output   = "../lib/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ─── User & Auth ────────────────────────────────────────────────────────────
+
+model User {
+  id            String   @id @default(uuid())
+  email         String   @unique
+  passwordHash  String
+  displayName   String?
+  avatarUrl     String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  apiKeys       ApiKey[]
+  sessions      Session[]
+  notes         Note[]
+  settings      UserSetting[]
+  fileObjects   FileObject[]
+  agentMemories AgentMemory[]
+  browserData   BrowserData[]
+}
+
+model ApiKey {
+  id        String   @id @default(uuid())
+  userId    String
+  keyHash   String   @unique   // SHA-256 of the raw API key
+  label     String   @default("default")
+  scopes    String[]           // e.g. ["read", "write", "ai"]
+  lastUsed  DateTime?
+  expiresAt DateTime?
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([keyHash])
+}
+
+model Session {
+  id           String   @id @default(uuid())
+  userId       String
+  token        String   @unique  // JWT or session token hash
+  userAgent    String?
+  ipAddress    String?
+  expiresAt    DateTime
+  createdAt    DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([token])
+  @@index([userId])
+}
+
+// ─── Notes & Analysis ───────────────────────────────────────────────────────
+
+model Note {
+  id        String   @id @default(uuid())
+  userId    String
+  title     String   @default("Catatan Baru")
+  content   String   @default("")
+  tags      String[] @default([])
+  chatMode  String   @default("default") // default | analitis | ringkas | custom
+  customPrompt String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  nodes       KiroNode[]
+  reminders   Reminder[]
+  datasets    Dataset[]
+  chunks      Chunk[]
+  embeddings  Embedding[]
+  chatMessages ChatMessage[]
+
+  @@index([userId])
+  @@index([updatedAt])
+  @@index([tags])
+}
+
+// ─── Causal Analysis Tree ───────────────────────────────────────────────────
+
+model KiroNode {
+  id         String   @id @default(uuid())
+  noteId     String
+  parentId   String?
+  nodeType   String   // ROOT_CAUSE | DIAGNOSIS | IMPACT | MITIGATION
+  label      String
+  details    String   @default("")
+  targetDate String?  // YYYY-MM-DD for MITIGATION nodes
+  status     String   @default("PENDING") // PENDING | DONE
+  createdAt  DateTime @default(now())
+
+  note     Note       @relation(fields: [noteId], references: [id], onDelete: Cascade)
+  parent   KiroNode?  @relation("NodeHierarchy", fields: [parentId], references: [id])
+  children KiroNode[] @relation("NodeHierarchy")
+  reminders Reminder[]
+
+  @@index([noteId])
+  @@index([nodeType])
+  @@index([status])
+}
+
+model Reminder {
+  id           String   @id @default(uuid())
+  noteId       String
+  nodeId       String
+  title        String
+  targetDate   String   // YYYY-MM-DD
+  isAcknowledged Boolean @default(false)
+  createdAt    DateTime @default(now())
+
+  note Note     @relation(fields: [noteId], references: [id], onDelete: Cascade)
+  node KiroNode @relation(fields: [nodeId], references: [id], onDelete: Cascade)
+
+  @@index([noteId])
+  @@index([targetDate])
+  @@index([isAcknowledged])
+}
+
+// ─── RAG Pipeline ───────────────────────────────────────────────────────────
+
+model Dataset {
+  id             String   @id @default(uuid())
+  noteId         String
+  hfDatasetId    String
+  hfConfig       String?
+  hfSplit        String   @default("train")
+  textFields     String[] // JSON string array of field names
+  rowLimit       Int      @default(500)
+  totalRowsFetched Int    @default(0)
+  totalChunks    Int      @default(0)
+  status         String   @default("FETCHING") // FETCHING | CHUNKING | EMBEDDING | READY | ERROR
+  errorMessage   String?
+  isEnabled      Boolean  @default(true)
+  createdAt      DateTime @default(now())
+
+  note     Note      @relation(fields: [noteId], references: [id], onDelete: Cascade)
+  chunks   Chunk[]
+
+  @@index([noteId])
+  @@index([status])
+}
+
+model Chunk {
+  id             String   @id @default(uuid())
+  datasetId      String
+  noteId         String
+  sourceRowIndex Int      @default(0)
+  text           String
+  tokenCount     Int      @default(0)
+  createdAt      DateTime @default(now())
+
+  dataset    Dataset     @relation(fields: [datasetId], references: [id], onDelete: Cascade)
+  note       Note        @relation(fields: [noteId], references: [id], onDelete: Cascade)
+  embeddings Embedding[]
+
+  @@index([datasetId])
+  @@index([noteId])
+}
+
+model Embedding {
+  id        String   @id @default(uuid())
+  chunkId   String
+  noteId    String
+  vector    Json     // Store as JSON array of floats for PostgreSQL
+  dim       Int      @default(384)
+  model     String   @default("Xenova/all-MiniLM-L6-v2")
+  createdAt DateTime @default(now())
+
+  chunk Chunk @relation(fields: [chunkId], references: [id], onDelete: Cascade)
+  note  Note  @relation(fields: [noteId], references: [id], onDelete: Cascade)
+
+  @@index([chunkId])
+  @@index([noteId])
+}
+
+// ─── Chat ───────────────────────────────────────────────────────────────────
+
+model ChatMessage {
+  id        String   @id @default(uuid())
+  noteId    String
+  role      String   // user | assistant
+  content   String
+  citations Json?    // { index, datasetId, sourceRowIndex, snippet }[]
+  createdAt DateTime @default(now())
+
+  note Note @relation(fields: [noteId], references: [id], onDelete: Cascade)
+
+  @@index([noteId])
+  @@index([createdAt])
+}
+
+// ─── File/Object Storage Metadata ───────────────────────────────────────────
+
+model FileObject {
+  id          String   @id @default(uuid())
+  userId      String
+  objectKey   String   @unique  // MinIO key: {userId}/{filename}
+  filename    String
+  mimeType    String?
+  sizeBytes   BigInt
+  checksum    String?  // SHA-256
+  storageType String   @default("minio") // minio | local
+  bucket      String   @default("swacana-files")
+  metadata    Json?    // arbitrary extra metadata
+  createdAt   DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([objectKey])
+}
+
+// ─── Agent Memory ───────────────────────────────────────────────────────────
+
+model AgentMemory {
+  id         String   @id @default(uuid())
+  userId     String
+  type       String   // insight | plan | task | idea | video_transcript
+  content    String
+  context    String?  // file path, URL, video URL, etc.
+  sourceUrl  String?
+  isActioned Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([type])
+  @@index([isActioned])
+}
+
+// ─── Browser Captured Data ──────────────────────────────────────────────────
+
+model BrowserData {
+  id         String   @id @default(uuid())
+  userId     String
+  title      String   @default("")
+  url        String
+  content    String   @default("")
+  summary    String?
+  capturedAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([capturedAt])
+}
+
+// ─── User Settings ──────────────────────────────────────────────────────────
+
+model UserSetting {
+  id    String @id @default(uuid())
+  userId String
+  key   String
+  value String
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, key])
+}
+
+// ─── Analytics (self-hosted Plausible-compatible) ───────────────────────────
+
+model AnalyticsEvent {
+  id         String   @id @default(uuid())
+  domain     String   @default("swacana")
+  event      String   // pageview | custom
+  url        String
+  referrer   String?
+  props      Json?
+  screenWidth Int?
+  sessionId  String
+  userAgent  String?
+  ipAddress  String?
+  country    String?
+  city       String?
+  browser    String?
+  os         String?
+  device     String?
+  createdAt  DateTime @default(now())
+
+  @@index([domain, createdAt])
+  @@index([sessionId])
+  @@index([event])
+}

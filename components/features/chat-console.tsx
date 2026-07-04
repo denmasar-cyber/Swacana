@@ -142,7 +142,6 @@ export default function ChatConsole({ onStream }: Props) {
 
   return (
     <div className="flex flex-col h-full">
-      {/* Model loader panel */}
       <ModelLoader
         selectedModelId={selectedModelId}
         onModelChange={setSelectedModelId}
@@ -150,10 +149,9 @@ export default function ChatConsole({ onStream }: Props) {
         loadProgress={loadProgress}
       />
 
-      {/* Messages */}
       <div className="flex-1 overflow-y-auto px-3 py-2 space-y-3 min-h-0">
         {messages.length === 0 && (
-          <div className="text-slate-500 text-xs text-center mt-8 px-4 leading-relaxed">
+          <div className="text-muted text-xs text-center mt-8 px-4 leading-relaxed">
             Load a model above, then describe a problem or goal.
             The AI will map it as a decision tree on the right.
           </div>
@@ -164,13 +162,13 @@ export default function ChatConsole({ onStream }: Props) {
               <div className="w-full">
                 <button
                   onClick={() => setThinkOpen((prev) => ({ ...prev, [i]: !prev[i] }))}
-                  className="flex items-center gap-1 text-[10px] text-slate-400 hover:text-slate-200 transition-colors"
+                  className="flex items-center gap-1 text-[10px] text-muted hover:text-foreground transition-colors"
                 >
                   {thinkOpen[i] ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
                   <span>Reasoning trace</span>
                 </button>
                 {thinkOpen[i] && (
-                  <pre className="mt-1 text-[10px] text-slate-400 bg-slate-800/60 rounded p-2 whitespace-pre-wrap font-mono overflow-x-auto max-h-40 overflow-y-auto">
+                  <pre className="mt-1 text-[10px] text-muted bg-surface2/60 rounded p-2 whitespace-pre-wrap font-mono overflow-x-auto max-h-40 overflow-y-auto">
                     {msg.thinkContent}
                   </pre>
                 )}
@@ -180,8 +178,8 @@ export default function ChatConsole({ onStream }: Props) {
               className={cn(
                 'max-w-[90%] rounded-lg px-3 py-2 text-xs leading-relaxed',
                 msg.role === 'user'
-                  ? 'bg-indigo-600 text-white'
-                  : 'bg-slate-800 text-slate-200',
+                  ? 'bg-accent text-white'
+                  : 'bg-surface2 text-foreground',
               )}
             >
               {msg.role === 'assistant'
@@ -193,8 +191,7 @@ export default function ChatConsole({ onStream }: Props) {
         <div ref={bottomRef} />
       </div>
 
-      {/* Input area */}
-      <div className="px-3 py-2 border-t border-slate-700 flex gap-2 items-end">
+      <div className="px-3 py-2 border-t border-border flex gap-2 items-end">
         <textarea
           value={input}
           onChange={(e) => setInput(e.target.value)}
@@ -206,7 +203,7 @@ export default function ChatConsole({ onStream }: Props) {
           }}
           placeholder="Describe your problem or situation… (Enter to send)"
           rows={2}
-          className="flex-1 bg-slate-800 text-slate-200 text-xs rounded px-2 py-1.5 border border-slate-700 focus:outline-none focus:border-slate-500 resize-none"
+          className="flex-1 bg-surface2 text-foreground text-xs rounded px-2 py-1.5 border border-border focus:outline-none focus:border-accent resize-none"
           disabled={isStreaming}
         />
         <div className="flex flex-col gap-1">
@@ -216,8 +213,8 @@ export default function ChatConsole({ onStream }: Props) {
             className={cn(
               'p-1.5 rounded transition-colors',
               isListening
-                ? 'bg-red-600 text-white'
-                : 'bg-slate-700 text-slate-300 hover:bg-slate-600',
+                ? 'bg-danger text-white'
+                : 'bg-surface3 text-muted hover:text-foreground',
             )}
           >
             {isListening ? <MicOff size={14} /> : <Mic size={14} />}
@@ -226,7 +223,7 @@ export default function ChatConsole({ onStream }: Props) {
             <button
               onClick={handleStop}
               title="Stop AI stream"
-              className="p-1.5 rounded bg-red-600 text-white hover:bg-red-500 transition-colors"
+              className="p-1.5 rounded bg-danger text-white hover:opacity-80 transition-colors"
             >
               <StopCircle size={14} />
             </button>
@@ -235,7 +232,7 @@ export default function ChatConsole({ onStream }: Props) {
               onClick={handleSend}
               disabled={!input.trim()}
               title="Send"
-              className="p-1.5 rounded bg-indigo-600 text-white hover:bg-indigo-500 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              className="p-1.5 rounded bg-accent text-white hover:opacity-80 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
             >
               <Send size={14} />
             </button>

@@ -4,41 +4,94 @@ import { useEffect, useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useRouter } from 'next/navigation';
 import {
-  Plus, FileText, Trash2, AlertTriangle, Network, Bell, Clock,
-  Search, Database, Sparkles, Menu, ChevronRight
+  Plus, FileText, Trash2, Clock, Sparkles, Menu,
+  Moon, Sun, Download, Upload, Lightbulb, BookOpen,
+  Search, Pin,
 } from 'lucide-react';
+import dynamic from 'next/dynamic';
 import { db } from '@/lib/db';
 import { cn } from '@/lib/utils';
-import CausalCorrelationGraph from './causal-correlation';
-import ActivityTimeline from './activity-timeline';
-import AISearch from './ai-search';
+import { AnimateIn, HoverLift, StaggerGroup } from '@/design-system/components/Motion';
+import Button from '@/design-system/components/Button';
+import Badge from '@/design-system/components/Badge';
+
+const CausalCorrelationGraph = dynamic(() => import('./causal-correlation'), {
+  ssr: false,
+  loading: () => <div className="h-full flex items-center justify-center text-muted text-xs"><div className="w-4 h-4 border-2 border-accent border-t-transparent rounded-full animate-spin mr-2" /> Loading graph...</div>,
+});
 import { requestNotificationPermission, startNotificationMonitor, stopNotificationMonitor } from '@/lib/notification-manager';
 import { seedDemoData, resetAndSeed } from '@/lib/seed';
+import AISearch from './ai-search';
+import ActivityTimeline from './activity-timeline';
+import CliDashboardBridge from './cli-dashboard-bridge';
 
-type HomeView = 'graph' | 'timeline' | 'search';
+type HomeView = 'board' | 'graph' | 'timeline' | 'search';
+
+// ─── Analysis Templates ────────────────────────────────────
+const ANALYSIS_TEMPLATES = [
+  {
+    title: '🧠 Analisis Diri & Pengembangan',
+    description: 'Petakan kekuatan, kelemahan, dan rencana pengembangan diri',
+    tags: ['Pengembangan Diri', 'Karir', 'Psikologis'],
+  },
+  {
+    title: '📚 Analisis Belajar & Akademik',
+    description: 'Evaluasi metode belajar, target akademik, dan solusi hambatan',
+    tags: ['Belajar', 'Akademik', 'Sekolah'],
+  },
+  {
+    title: '💼 Analisis Karir & Masa Depan',
+    description: 'Rencanakan jalur karir, skill yang dibutuhkan, dan langkah strategis',
+    tags: ['Karir', 'Masa Depan', 'Skill'],
+  },
+  {
+    title: '🧘 Analisis Kesehatan Mental',
+    description: 'Petakan kondisi psikologis, stresor, dan strategi coping',
+    tags: ['Kesehatan Mental', 'Psikologis', 'Self-care'],
+  },
+  {
+    title: '🎯 Analisis Proyek & Target',
+    description: 'Break down proyek besar jadi langkah-langkah actionable',
+    tags: ['Proyek', 'Target', 'Produktivitas'],
+  },
+  {
+    title: '🌱 Analisis Relasi & Sosial',
+    description: 'Evaluasi hubungan personal, dinamika sosial, dan komunikasi',
+    tags: ['Relasi', 'Sosial', 'Psikologis'],
+  },
+];
 
 export default function KiroNetwork() {
   const router = useRouter();
-  const [view, setView] = useState<HomeView>('graph');
-  const [notificationsEnabled, setNotificationsEnabled] = useState(false);
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [view, setView] = useState<HomeView>('board');
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [showTemplates, setShowTemplates] = useState(false);
+  const [isDark, setIsDark] = useState(true);
 
   const notes = useLiveQuery(() => db.notes.orderBy('updatedAt').reverse().toArray(), []);
   const allNodes = useLiveQuery(() => db.nodes.toArray(), []);
+
+  // ── Theme ──
+  const toggleTheme = () => {
+    const next = !isDark;
+    setIsDark(next);
+    document.documentElement.classList.toggle('dark', next);
+    localStorage.setItem('swacana-theme', next ? 'dark' : 'light');
+  };
+
+  useEffect(() => {
+    const saved = localStorage.getItem('swacana-theme');
+    if (saved === 'light') {
+      setIsDark(false);
+      document.documentElement.classList.remove('dark');
+    }
+  }, []);
 
   // ── Auto-seed on first mount if DB is empty ──
   useEffect(() => {
     requestNotificationPermission();
     startNotificationMonitor(60000);
-    const check = setTimeout(() => {
-      setNotificationsEnabled(
-        typeof Notification !== 'undefined' && Notification.permission === 'granted'
-      );
-    }, 500);
-    return () => {
-      clearTimeout(check);
-      stopNotificationMonitor();
-    };
+    return () => { stopNotificationMonitor(); };
   }, []);
 
   const [seeding, setSeeding] = useState(false);
@@ -49,19 +102,34 @@ export default function KiroNetwork() {
     }
   }, [notes, seeding]);
 
-  const createNote = async () => {
+  const createNote = async (title?: string, content?: string) => {
     const id = crypto.randomUUID();
     await db.notes.add({
-      id, title: 'New Analysis', content: '',
-      createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
+      id,
+      title: title || 'Catatan Baru',
+      content: content || '',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      chatMode: 'default',
+      chatModeCustomPrompt: null,
     });
     router.push(`/note/${id}`);
   };
 
+  const createFromTemplate = async (template: typeof ANALYSIS_TEMPLATES[0]) => {
+    setShowTemplates(false);
+    await createNote(template.title, '');
+  };
+
   const deleteNote = async (e: React.MouseEvent, id: string) => {
     e.stopPropagation();
-    if (!confirm('Delete this analysis and all its nodes?')) return;
+    if (!confirm('Hapus catatan ini dan semua datanya?')) return;
     await db.nodes.where('noteId').equals(id).delete();
+    await db.chatMessages.where('noteId').equals(id).delete();
+    const dsIds = (await db.datasets.where('noteId').equals(id).primaryKeys()) as string[];
+    await db.chunks.where('noteId').equals(id).delete();
+    await db.embeddings.where('noteId').equals(id).delete();
+    await db.datasets.bulkDelete(dsIds);
     await db.notes.delete(id);
   };
 
@@ -72,204 +140,262 @@ export default function KiroNetwork() {
   const dueSoon = (allNodes ?? []).filter(
     (n) => n.nodeType === 'MITIGATION' && n.status === 'PENDING' && n.targetDate && n.targetDate === today
   );
+  const totalMitigations = (allNodes ?? []).filter((n) => n.nodeType === 'MITIGATION').length;
 
-  const VIEW_BUTTONS: { key: HomeView; icon: typeof Network; label: string }[] = [
-    { key: 'graph', icon: Network, label: 'Causal Map' },
-    { key: 'timeline', icon: Clock, label: 'Timeline' },
-    { key: 'search', icon: Search, label: 'Search' },
-  ];
+  // Format relative date
+  const formatDate = (dateStr: string) => {
+    const d = new Date(dateStr);
+    const now = new Date();
+    const diff = now.getTime() - d.getTime();
+    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+    if (days === 0) return 'Hari ini';
+    if (days === 1) return 'Kemarin';
+    if (days < 7) return `${days} hari lalu`;
+    if (days < 30) return `${Math.floor(days / 7)} minggu lalu`;
+    return d.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' });
+  };
+
+  const getContentPreview = (content: string, maxLen = 120) => {
+    if (!content) return '';
+    const clean = content.replace(/[#*_~`>\]\[]/g, '').trim();
+    return clean.length > maxLen ? clean.slice(0, maxLen) + '...' : clean;
+  };
 
   return (
-    <div className="h-screen bg-[#0a0a0f] text-[#e8e8ed] flex overflow-hidden">
-      {/* ── Sidebar ── */}
+    <div className={cn('h-screen flex overflow-hidden', isDark ? 'dark' : '')}>
+      {/* ── Minimal Sidebar ── */}
       <aside className={cn(
-        'flex flex-col border-r border-[#2a2a3a] bg-[#0d0d15] transition-all duration-300 shrink-0',
-        sidebarOpen ? 'w-72' : 'w-0 overflow-hidden',
+        'flex flex-col border-r shrink-0 transition-all duration-300 z-20 bg-surface/90 backdrop-blur-sm',
+        'border-border',
+        sidebarOpen ? 'w-64' : 'w-0 overflow-hidden',
       )}>
-        {/* Sidebar Header */}
-        <div className="px-4 py-4 border-b border-[#2a2a3a] shrink-0">
+        <div className="px-4 py-4 border-b border-border shrink-0">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-[#7c3aed] to-[#6366f1] flex items-center justify-center shadow-lg shadow-purple-500/20">
-              <Sparkles size={16} className="text-white" />
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-accent to-accent2 flex items-center justify-center shadow-lg shadow-accent/20">
+              <Sparkles size={18} className="text-white" />
             </div>
             <div>
-              <h1 className="text-sm font-bold text-white">Swacana</h1>
-              <p className="text-[9px] text-[#6b6b80] tracking-wider">Decision Intelligence</p>
+              <h1 className="text-base font-bold text-foreground">Swacana</h1>
+              <p className="text-[10px] text-muted tracking-wider">Papan Catatan</p>
             </div>
           </div>
         </div>
 
-        {/* New Analysis Button */}
-        <div className="px-3 py-3 shrink-0">
-          <button
-            onClick={createNote}
-            className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-[#7c3aed] to-[#6366f1] hover:from-[#6d28d9] hover:to-[#4f46e5] text-white text-xs font-medium px-4 py-2.5 rounded-xl transition-all shadow-lg shadow-purple-500/20 hover:shadow-purple-500/30"
-          >
+        <div className="px-3 py-3 shrink-0 space-y-2">
+          <button onClick={() => createNote()}
+            className="w-full flex items-center justify-center gap-2 clay-btn text-xs font-medium">
             <Plus size={14} />
-            New Analysis
+            Catatan Baru
           </button>
+          <button onClick={() => setShowTemplates(!showTemplates)}
+            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 text-xs font-medium rounded-xl bg-surface2 text-foreground hover:bg-surface3 border border-border transition-all">
+            <Lightbulb size={14} />
+            Template
+          </button>
+          {showTemplates && (
+            <div className="space-y-1 max-h-48 overflow-y-auto rounded-xl border border-border p-1.5 bg-surface2 animate-scale-in">
+              {ANALYSIS_TEMPLATES.map((t, i) => (
+                <button key={i} onClick={() => createFromTemplate(t)}
+                  className="w-full text-left px-2.5 py-2 rounded-lg hover:bg-surface3 transition-colors">
+                  <p className="text-[11px] font-medium text-foreground truncate">{t.title}</p>
+                  <p className="text-[9px] text-muted line-clamp-1">{t.description}</p>
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
-        {/* View Switcher */}
+        {/* View Tabs */}
         <div className="px-3 pb-2 shrink-0">
-          <p className="text-[9px] uppercase tracking-[0.15em] text-[#6b6b80] font-semibold mb-2 px-1">Views</p>
+          <p className="section-title px-1">Tampilan</p>
           <div className="space-y-0.5">
-            {VIEW_BUTTONS.map((vb) => (
-              <button
-                key={vb.key}
-                onClick={() => setView(vb.key)}
+            {[
+              { key: 'board' as HomeView, icon: Pin, label: 'Papan', desc: 'Catatan dalam grid' },
+              { key: 'graph' as HomeView, icon: FileText, label: 'Peta Kausal', desc: 'Hubungan antar catatan' },
+              { key: 'timeline' as HomeView, icon: Clock, label: 'Timeline', desc: 'Aktivitas & tenggat' },
+              { key: 'search' as HomeView, icon: Search, label: 'Cari', desc: 'Temukan catatan' },
+            ].map((vb) => (
+              <button key={vb.key} onClick={() => setView(vb.key)}
                 className={cn(
                   'w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs transition-all text-left',
                   view === vb.key
-                    ? 'bg-gradient-to-r from-[#7c3aed]/15 to-[#6366f1]/10 text-white border border-[#7c3aed]/20'
-                    : 'text-[#6b6b80] hover:text-white hover:bg-[#1a1a25]',
-                )}
-              >
-                <vb.icon size={14} className={view === vb.key ? 'text-[#8b5cf6]' : ''} />
-                {vb.label}
+                    ? 'bg-accent/12 text-foreground border border-accent/20'
+                    : 'text-muted hover:text-foreground hover:bg-surface2',
+                )}>
+                <vb.icon size={14} className={view === vb.key ? 'text-accent' : ''} />
+                <div className="flex-1">
+                  <span>{vb.label}</span>
+                  <span className="block text-[9px] text-muted">{vb.desc}</span>
+                </div>
               </button>
             ))}
           </div>
         </div>
 
-        {/* Analyses List */}
-        <div className="flex-1 min-h-0 px-3">
-          <div className="flex items-center justify-between mb-2 px-1">
-            <p className="text-[9px] uppercase tracking-[0.15em] text-[#6b6b80] font-semibold">
-              Analyses
-            </p>
-            <span className="text-[9px] text-[#6b6b80]">{notes?.length ?? 0}</span>
-          </div>
-          <div className="h-full overflow-y-auto space-y-0.5 pb-4">
-            {!notes || notes.length === 0 ? (
-              <div className="flex flex-col items-center justify-center h-32 text-[#6b6b80] text-xs text-center px-4">
-                <FileText size={20} className="mb-2 opacity-30" />
-                <p>No analyses yet.</p>
-              </div>
-            ) : (
-              notes.map((note) => {
-                const noteOverdue = overdue.filter((n) => n.noteId === note.id);
-                const noteDueSoon = dueSoon.filter((n) => n.noteId === note.id);
-                return (
-                  <div
-                    key={note.id}
-                    onClick={() => router.push(`/note/${note.id}`)}
-                    className={cn(
-                      'group flex items-center gap-2 px-3 py-2.5 rounded-lg cursor-pointer transition-all',
-                      'hover:bg-[#1a1a25] border border-transparent hover:border-[#2a2a3a]',
-                    )}
-                  >
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-1.5">
-                        <h3 className="text-xs font-medium text-[#e8e8ed] truncate">{note.title}</h3>
-                        {(noteOverdue.length > 0 || noteDueSoon.length > 0) && (
-                          <AlertTriangle size={10} className="text-red-400 shrink-0" />
-                        )}
-                      </div>
-                      <p className="text-[10px] text-[#6b6b80] mt-0.5">
-                        {new Date(note.updatedAt).toLocaleDateString()}
-                        {note.content?.length > 0 && ' · ✎'}
-                      </p>
-                    </div>
-                    <button
-                      onClick={(e) => deleteNote(e, note.id)}
-                      className="opacity-0 group-hover:opacity-100 p-1 rounded text-[#6b6b80] hover:text-red-400 hover:bg-[#2a2a3a] transition-all shrink-0"
-                      title="Delete"
-                    >
-                      <Trash2 size={11} />
-                    </button>
-                    <ChevronRight size={11} className="text-[#6b6b80] opacity-0 group-hover:opacity-100 transition-opacity" />
-                  </div>
-                );
-              })
-            )}
-          </div>
-        </div>
+        {/* CLI Dashboard Bridge — show CLI agent data inside sidebar */}
+        <CliDashboardBridge />
 
-        {/* Sidebar Footer */}
-        <div className="px-3 py-3 border-t border-[#2a2a3a] shrink-0">
-          <button
-            onClick={() => resetAndSeed()}
-            className="w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-[10px] text-[#6b6b80] hover:text-white hover:bg-[#1a1a25] border border-[#2a2a3a] transition-all"
-          >
-            <Database size={11} />
-            Reseed Demo Data
+        <div className="flex-1" />
+
+        <div className="px-3 py-3 border-t border-border shrink-0 space-y-2">
+          <button onClick={toggleTheme}
+            className="w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-[10px] text-muted hover:text-foreground hover:bg-surface2 border border-border transition-all">
+            {isDark ? <Sun size={11} /> : <Moon size={11} />}
+            {isDark ? 'Mode Terang' : 'Mode Gelap'}
           </button>
+          <div className="flex gap-2">
+            <button onClick={async () => {
+              const allNotes = await db.notes.toArray();
+              const allNodesData = await db.nodes.toArray();
+              const data = { notes: allNotes, nodes: allNodesData, exportedAt: new Date().toISOString() };
+              const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement('a');
+              a.href = url;
+              a.download = `swacana-${new Date().toISOString().split('T')[0]}.json`;
+              a.click();
+              URL.revokeObjectURL(url);
+            }}
+              className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-[10px] text-muted hover:text-foreground hover:bg-surface2 border border-border transition-all">
+              <Download size={11} /> Export
+            </button>
+            <button onClick={() => resetAndSeed()}
+              className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-[10px] text-muted hover:text-foreground hover:bg-surface2 border border-border transition-all">
+              <Upload size={11} /> Reset
+            </button>
+          </div>
         </div>
       </aside>
 
-      {/* ── Main Content ── */}
-      <div className="flex-1 flex flex-col min-w-0">
+      {/* ── Main ── */}
+      <div className="flex-1 flex flex-col min-w-0 vintage-paper">
         {/* Top Bar */}
-        <header className="flex items-center gap-3 px-4 py-2.5 border-b border-[#2a2a3a] bg-[#0d0d15]/80 backdrop-blur-sm shrink-0">
-          <button
-            onClick={() => setSidebarOpen((v) => !v)}
-            className="p-1.5 rounded-lg hover:bg-[#1a1a25] text-[#6b6b80] hover:text-white transition-all"
-          >
+        <header className="flex items-center gap-3 px-4 py-3 border-b border-border bg-surface/70 backdrop-blur-sm shrink-0">
+          <button onClick={() => setSidebarOpen((v) => !v)}
+            className="p-1.5 rounded-xl hover:bg-surface2 text-muted hover:text-foreground transition-all">
             <Menu size={16} />
           </button>
 
-          {/* Notifications & Status */}
-          <div className="ml-auto flex items-center gap-3">
-            {/* Notification indicator */}
-            <span className={cn(
-              'flex items-center gap-1 text-[10px] px-2 py-1 rounded-full',
-              notificationsEnabled
-                ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
-                : 'bg-[#1a1a25] text-[#6b6b80] border border-[#2a2a3a]',
-            )}>
-              <Bell size={10} />
-              {notificationsEnabled ? 'On' : 'Off'}
-            </span>
+          <span className="text-[10px] text-muted font-medium">{notes?.length ?? 0} catatan</span>
 
-            {/* Reminder bell with popover */}
-            {(overdue.length > 0 || dueSoon.length > 0) && (
-              <div className="relative group">
-                <button className="p-1.5 rounded-lg bg-[#1a1a25] hover:bg-[#2a2a3a] border border-[#2a2a3a] transition-all relative">
-                  <Bell size={14} className={cn(overdue.length > 0 ? 'text-red-400' : 'text-amber-400')} />
-                  <span className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-gradient-to-br from-red-500 to-red-600 text-white text-[7px] flex items-center justify-center font-bold shadow-lg">
-                    {overdue.length + dueSoon.length}
-                  </span>
-                </button>
-                <div className="absolute right-0 top-full mt-2 w-72 bg-[#12121a] border border-[#2a2a3a] rounded-xl shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50 overflow-hidden animate-scale-in">
-                  <div className="px-3 py-2 border-b border-[#2a2a3a] bg-[#0d0d15]">
-                    <p className="text-[10px] font-semibold text-[#e8e8ed]">Reminders</p>
-                  </div>
-                  <div className="max-h-52 overflow-y-auto p-1.5 space-y-0.5">
-                    {overdue.map((n) => (
-                      <button key={n.id} onClick={() => router.push(`/note/${n.noteId}`)}
-                        className="w-full flex items-center gap-2 px-2.5 py-2 rounded-lg hover:bg-[#1a1a25] text-left transition-all">
-                        <AlertTriangle size={10} className="text-red-400 shrink-0" />
-                        <span className="flex-1 text-[11px] text-[#e8e8ed] truncate">{n.label}</span>
-                        <span className="text-[9px] text-red-400 shrink-0 font-mono">{n.targetDate}</span>
-                      </button>
-                    ))}
-                    {dueSoon.map((n) => (
-                      <button key={n.id} onClick={() => router.push(`/note/${n.noteId}`)}
-                        className="w-full flex items-center gap-2 px-2.5 py-2 rounded-lg hover:bg-[#1a1a25] text-left transition-all">
-                        <Bell size={10} className="text-amber-400 shrink-0" />
-                        <span className="flex-1 text-[11px] text-[#e8e8ed] truncate">{n.label}</span>
-                        <span className="text-[9px] text-amber-400 shrink-0">Due today</span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Local badge */}
-            <span className="text-[9px] px-2 py-1 rounded-full bg-[#7c3aed]/10 text-[#a78bfa] border border-[#7c3aed]/20 flex items-center gap-1">
-              <Sparkles size={9} />
-              100% Local
+          {overdue.length + dueSoon.length > 0 && (
+            <span className="flex items-center gap-1 clay-badge text-[9px]">
+              {overdue.length + dueSoon.length} tenggat
             </span>
-          </div>
+          )}
+
+          {totalMitigations > 0 && (
+            <span className="text-[9px] text-muted ml-auto">
+              {allNodes?.filter(n => n.nodeType === 'MITIGATION' && n.status === 'DONE').length ?? 0}/{totalMitigations} selesai
+            </span>
+          )}
         </header>
 
-        {/* View Panel */}
-        <div className="flex-1 min-h-0">
-          {view === 'graph' && <CausalCorrelationGraph />}
-          {view === 'timeline' && <ActivityTimeline />}
-          {view === 'search' && <AISearch />}
+        {/* ── Content ── */}
+        <div className="flex-1 min-h-0 overflow-y-auto note-scroll">
+          {(!notes || notes.length === 0) && view === 'board' ? (
+            /* ── Empty State ── */
+            <div className="h-full flex flex-col items-center justify-center px-6 animate-fade-in">
+              <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-accent to-accent2 flex items-center justify-center shadow-2xl shadow-accent/25 mb-8 animate-float">
+                <Sparkles size={40} className="text-white" />
+              </div>
+              <h2 className="text-2xl font-bold text-foreground mb-2 tracking-tight">Papan Catatanmu</h2>
+              <p className="text-sm text-muted text-center max-w-md leading-relaxed mb-10">
+                Tulis curhatan, diary, atau tujuan — AI akan otomatis memetakan solusi, plan, dan korelasi kausal antar semuanya.
+              </p>
+
+              <StaggerGroup delay={50} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 max-w-2xl w-full mb-10">
+                {ANALYSIS_TEMPLATES.map((t, i) => (
+                  <HoverLift key={i} scale={1.02} lift={3}>
+                    <button onClick={() => createFromTemplate(t)}
+                      className="w-full clay-card p-5 text-left">
+                      <p className="text-sm font-semibold text-foreground mb-1.5">{t.title}</p>
+                      <p className="text-[11px] text-muted leading-relaxed">{t.description}</p>
+                      <div className="flex flex-wrap gap-1.5 mt-3">
+                        {t.tags.map((tag) => (
+                          <span key={tag} className="tag tag-accent text-[8px]">{tag}</span>
+                        ))}
+                      </div>
+                    </button>
+                  </HoverLift>
+                ))}
+              </StaggerGroup>
+
+              <AnimateIn preset="bounce" delay={300}>
+                <Button variant="primary" size="lg" onClick={() => createNote()} className="animate-soft-glow">
+                  <Plus size={18} />
+                  Mulai Catatan Baru
+                </Button>
+              </AnimateIn>
+            </div>
+          ) : view === 'board' ? (
+            /* ── Pinterest Grid ── */
+            <StaggerGroup delay={30} className="pinboard">
+              {/* Add Note Card */}
+              <HoverLift scale={1.03} lift={4}>
+                <button onClick={() => createNote()}
+                  className="w-full pinboard-card flex flex-col items-center justify-center min-h-[180px] bg-surface2/60 border-dashed border-2 border-border/60 hover:border-accent/40 hover:bg-accent/5 group">
+                  <div className="w-12 h-12 rounded-xl bg-accent/10 flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
+                    <Plus size={24} className="text-accent/60" />
+                  </div>
+                  <p className="text-xs font-medium text-muted group-hover:text-accent transition-colors">Catatan Baru</p>
+                </button>
+              </HoverLift>
+
+              {/* Note Cards */}
+              {notes?.map((note) => {
+                const noteOverdue = overdue.filter((n) => n.noteId === note.id);
+                const preview = getContentPreview(note.content);
+                return (
+                  <HoverLift key={note.id} scale={1.02} lift={3}>
+                    <div onClick={() => router.push(`/note/${note.id}`)}
+                      className="pinboard-card group cursor-pointer">
+                    <div className="p-5">
+                      {/* Header */}
+                      <div className="flex items-start justify-between gap-2 mb-2">
+                        <h3 className="text-sm font-bold text-foreground leading-snug line-clamp-2 flex-1">
+                          {note.title}
+                        </h3>
+                        <button onClick={(e) => deleteNote(e, note.id)}
+                          className="opacity-0 group-hover:opacity-100 p-1 rounded-lg hover:bg-surface3 text-muted hover:text-danger transition-all shrink-0 -mt-0.5 -mr-1">
+                          <Trash2 size={12} />
+                        </button>
+                      </div>
+
+                      {/* Content Preview */}
+                      {preview && (
+                        <p className="text-[11px] text-muted/80 leading-relaxed line-clamp-4 mb-3">
+                          {preview}
+                        </p>
+                      )}
+
+                      {/* Tags from content */}
+                      {noteOverdue.length > 0 && (
+                        <div className="flex flex-wrap gap-1 mb-2">
+                          <span className="tag tag-danger text-[8px]">{noteOverdue.length} overdue</span>
+                        </div>
+                      )}
+
+                      {/* Footer */}
+                      <div className="flex items-center justify-between mt-auto pt-2 border-t border-border/40">
+                        <span className="text-[9px] text-muted/60">{formatDate(note.updatedAt)}</span>
+                        <span className="flex items-center gap-1 text-[9px] text-muted/40">
+                          {(note.content?.length ?? 0) > 0 && <BookOpen size={9} />}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </HoverLift>
+                );
+              })}
+          </StaggerGroup>
+          ) : view === 'graph' ? (
+            <CausalCorrelationGraph />
+          ) : view === 'timeline' ? (
+            <ActivityTimeline />
+          ) : (
+            <AISearch />
+          )}
         </div>
       </div>
     </div>

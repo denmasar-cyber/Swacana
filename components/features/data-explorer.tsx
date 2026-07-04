@@ -278,40 +278,38 @@ export default function DataExplorer() {
   return (
     <div className="flex flex-col h-full">
       {/* ── Header ── */}
-      <div className="px-2 py-1.5 border-b border-slate-700 shrink-0">
+      <div className="px-2 py-1.5 border-b border-border shrink-0">
         <div className="flex items-center gap-1.5 mb-1.5">
-          <Database size={12} className="text-indigo-400" />
-          <span className="text-[10px] uppercase tracking-widest text-slate-500 font-semibold">
+          <Database size={12} className="text-accent" />
+          <span className="text-[10px] uppercase tracking-widest text-muted font-semibold">
             NLP &amp; AI Data Explorer
           </span>
-          <span className="text-[9px] text-slate-600 ml-auto">
+          <span className="text-[9px] text-muted/60 ml-auto">
             via HuggingFace API
           </span>
         </div>
 
-        {/* Search + Refresh */}
         <div className="flex gap-1">
           <div className="relative flex-1">
-            <Search size={12} className="absolute left-2 top-1/2 -translate-y-1/2 text-slate-500" />
+            <Search size={12} className="absolute left-2 top-1/2 -translate-y-1/2 text-muted" />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search NLP datasets..."
-              className="w-full bg-slate-800 text-slate-200 text-[11px] rounded pl-6 pr-2 py-1.5 border border-slate-600 focus:outline-none focus:border-indigo-500/50 placeholder:text-slate-600"
+              className="w-full bg-surface2 text-foreground text-[11px] rounded pl-6 pr-2 py-1.5 border border-border focus:outline-none focus:border-accent/50 placeholder:text-muted"
             />
           </div>
           <button
             onClick={handleRefresh}
             disabled={isLoading}
-            className="p-1.5 rounded bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-slate-200 border border-slate-600 transition-colors disabled:opacity-50"
+            className="p-1.5 rounded bg-surface2 text-muted hover:bg-surface3 hover:text-foreground border border-border transition-colors disabled:opacity-50"
             title="Refresh"
           >
             <RefreshCw size={12} className={cn(isLoading && 'animate-spin')} />
           </button>
         </div>
 
-        {/* Categories */}
         <div className="flex flex-wrap gap-1 mt-1.5 max-h-10 overflow-y-auto">
           {categories.slice(0, 15).map((cat) => (
             <button
@@ -320,8 +318,8 @@ export default function DataExplorer() {
               className={cn(
                 'text-[10px] px-1.5 py-0.5 rounded transition-colors',
                 selectedCategory === cat
-                  ? 'bg-indigo-600/30 text-indigo-300 border border-indigo-500/30'
-                  : 'bg-slate-800 text-slate-400 hover:bg-slate-700 border border-slate-700',
+                  ? 'bg-accent/30 text-accent border border-accent/30'
+                  : 'bg-surface2 text-muted hover:bg-surface3 border border-border',
               )}
             >
               {cat}
@@ -332,58 +330,47 @@ export default function DataExplorer() {
 
       {/* ── Content ── */}
       <div className="flex-1 min-h-0 flex flex-col">
-        {/* Error state */}
         {error && (
-          <div className="mx-2 mt-2 px-2 py-1.5 rounded bg-red-900/30 border border-red-700/50 flex items-start gap-1.5">
-            <AlertCircle size={11} className="text-red-400 mt-0.5 shrink-0" />
+          <div className="mx-2 mt-2 px-2 py-1.5 rounded bg-danger/10 border border-danger/30 flex items-start gap-1.5">
+            <AlertCircle size={11} className="text-danger mt-0.5 shrink-0" />
             <div className="flex-1 min-w-0">
-              <p className="text-[10px] text-red-200 leading-snug">{error}</p>
-              <button
-                onClick={handleRefresh}
-                className="text-[10px] text-red-300 hover:text-red-100 underline mt-0.5"
-              >
-                Retry
-              </button>
+              <p className="text-[10px] text-danger/80 leading-snug">{error}</p>
+              <button onClick={handleRefresh} className="text-[10px] text-danger/70 hover:text-danger underline mt-0.5">Retry</button>
             </div>
           </div>
         )}
 
-        {/* Loading skeleton */}
         {isLoading && datasets.length === 0 && (
           <div className="flex-1 flex flex-col gap-1.5 p-2">
             {Array.from({ length: 5 }).map((_, i) => (
-              <div key={i} className="animate-pulse flex flex-col gap-1.5 px-2 py-2 rounded bg-slate-800/30">
+              <div key={i} className="animate-pulse flex flex-col gap-1.5 px-2 py-2 rounded bg-surface2/30">
                 <div className="flex items-center gap-2">
-                  <div className="h-3 w-2/5 rounded bg-slate-700" />
-                  <div className="h-2.5 w-1/6 rounded bg-slate-700" />
+                  <div className="h-3 w-2/5 rounded bg-surface3" />
+                  <div className="h-2.5 w-1/6 rounded bg-surface3" />
                 </div>
-                <div className="h-2 w-4/5 rounded bg-slate-700/70" />
+                <div className="h-2 w-4/5 rounded bg-surface3/70" />
                 <div className="flex gap-2 mt-0.5">
-                  <div className="h-2 w-12 rounded bg-slate-700/50" />
-                  <div className="h-2 w-10 rounded bg-slate-700/50" />
+                  <div className="h-2 w-12 rounded bg-surface3/50" />
+                  <div className="h-2 w-10 rounded bg-surface3/50" />
                 </div>
               </div>
             ))}
           </div>
         )}
 
-        {/* Empty state */}
         {!isLoading && !error && filtered.length === 0 && (
-          <div className="flex flex-col items-center justify-center flex-1 text-slate-500 px-4">
+          <div className="flex flex-col items-center justify-center flex-1 text-muted px-4">
             <Database size={24} className="mb-2 opacity-30" />
             <p className="text-xs text-center">No datasets found.</p>
-            <p className="text-[10px] text-slate-600 text-center mt-1">
-              {searchQuery
-                ? 'Try a different search term.'
-                : 'Connect to the internet to browse HuggingFace datasets.'}
+            <p className="text-[10px] text-muted/60 text-center mt-1">
+              {searchQuery ? 'Try a different search term.' : 'Connect to the internet to browse HuggingFace datasets.'}
             </p>
           </div>
         )}
 
-        {/* Dataset list */}
         {!isLoading && filtered.length > 0 && (
           <div className="flex-1 overflow-y-auto min-h-0">
-            <div className="divide-y divide-slate-700/50">
+            <div className="divide-y divide-border/50">
               {filtered.map((dataset) => (
                 <DatasetRow
                   key={dataset.id}
@@ -396,24 +383,17 @@ export default function DataExplorer() {
               ))}
             </div>
 
-            {/* Load more */}
             {hasMore && (
               <div className="px-2 py-2 flex justify-center">
                 <button
                   onClick={loadMore}
                   disabled={isLoadingMore}
-                  className="flex items-center gap-1 text-[10px] bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-1.5 rounded border border-slate-600 transition-colors disabled:opacity-50"
+                  className="flex items-center gap-1 text-[10px] bg-surface2 hover:bg-surface3 text-foreground/80 px-3 py-1.5 rounded border border-border transition-colors disabled:opacity-50"
                 >
                   {isLoadingMore ? (
-                    <>
-                      <Loader2 size={10} className="animate-spin" />
-                      Loading...
-                    </>
+                    <><Loader2 size={10} className="animate-spin" /> Loading...</>
                   ) : (
-                    <>
-                      <Download size={10} />
-                      Load more datasets
-                    </>
+                    <><Download size={10} /> Load more datasets</>
                   )}
                 </button>
               </div>
@@ -422,26 +402,18 @@ export default function DataExplorer() {
         )}
       </div>
 
-      {/* ── Status bar ── */}
-      <div className="px-2 py-1 border-t border-slate-700 shrink-0 flex items-center justify-between">
-        <span className="text-[9px] text-slate-600">
-          {totalCount > 0
-            ? `Showing ${filtered.length} of ${totalCount} datasets`
-            : `${filtered.length} datasets`}
+      <div className="px-2 py-1 border-t border-border shrink-0 flex items-center justify-between">
+        <span className="text-[9px] text-muted/60">
+          {totalCount > 0 ? `Showing ${filtered.length} of ${totalCount} datasets` : `${filtered.length} datasets`}
         </span>
         <div className="flex items-center gap-2">
           {isLoading && (
-            <span className="text-[9px] text-indigo-400 flex items-center gap-0.5">
-              <Loader2 size={8} className="animate-spin" />
-              Fetching...
+            <span className="text-[9px] text-accent flex items-center gap-0.5">
+              <Loader2 size={8} className="animate-spin" /> Fetching...
             </span>
           )}
-          <a
-            href="https://huggingface.co/datasets"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-[9px] text-indigo-400 hover:text-indigo-300 transition-colors flex items-center gap-0.5"
-          >
+          <a href="https://huggingface.co/datasets" target="_blank" rel="noopener noreferrer"
+            className="text-[9px] text-accent hover:text-accent/80 transition-colors flex items-center gap-0.5">
             Browse HuggingFace <ExternalLink size={8} />
           </a>
         </div>
@@ -485,55 +457,37 @@ function DatasetRow({
       <div
         onClick={onToggle}
         onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onToggle(); } }}
-        role="button"
-        tabIndex={0}
-        className="w-full flex items-start gap-2 px-2 py-2 hover:bg-slate-800/50 transition-colors text-left cursor-pointer"
+        role="button" tabIndex={0}
+        className="w-full flex items-start gap-2 px-2 py-2 hover:bg-surface2/50 transition-colors text-left cursor-pointer"
       >
         <div className="mt-0.5 shrink-0">
-          {isExpanded ? (
-            <ChevronDown size={12} className="text-slate-400" />
-          ) : (
-            <ChevronRight size={12} className="text-slate-500" />
-          )}
+          {isExpanded ? <ChevronDown size={12} className="text-muted" /> : <ChevronRight size={12} className="text-muted/80" />}
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1.5">
-            <span className="text-xs font-medium text-slate-200 truncate">
-              {shortName}
-            </span>
-            <span className="text-[9px] px-1 py-0.5 rounded bg-slate-700 text-slate-400 shrink-0">
-              {dataset.category}
-            </span>
+            <span className="text-xs font-medium text-foreground truncate">{shortName}</span>
+            <span className="text-[9px] px-1 py-0.5 rounded bg-surface3 text-muted shrink-0">{dataset.category}</span>
             {dataset.likes > 0 && (
               <span className="text-[9px] text-pink-400 flex items-center gap-0.5 shrink-0">
-                <Heart size={8} />
-                {formatNum(dataset.likes)}
+                <Heart size={8} /> {formatNum(dataset.likes)}
               </span>
             )}
           </div>
-          <p className="text-[10px] text-slate-500 mt-0.5 line-clamp-1">
-            {cleanDescription || 'No description'}
-          </p>
+          <p className="text-[10px] text-muted/80 mt-0.5 line-clamp-1">{cleanDescription || 'No description'}</p>
           <div className="flex items-center gap-2 mt-1 flex-wrap">
-            <span className="text-[9px] text-slate-600">{dataset.author}</span>
-            <span className="text-[9px] text-slate-600 flex items-center gap-0.5">
-              <Download size={8} />
-              {formatNum(dataset.downloads)}
+            <span className="text-[9px] text-muted/60">{dataset.author}</span>
+            <span className="text-[9px] text-muted/60 flex items-center gap-0.5">
+              <Download size={8} /> {formatNum(dataset.downloads)}
             </span>
-            <span className="text-[9px] text-slate-600">· {dataset.size}</span>
-            <span className="text-[9px] text-slate-600">
-              · {formatDate(dataset.lastModified)}
-            </span>
+            <span className="text-[9px] text-muted/60">· {dataset.size}</span>
+            <span className="text-[9px] text-muted/60">· {formatDate(dataset.lastModified)}</span>
           </div>
         </div>
-        <button
-          onClick={handleOpen}
-          className="shrink-0 p-1 rounded hover:bg-indigo-600/20 text-slate-400 hover:text-indigo-300 transition-colors relative disabled:opacity-50 disabled:cursor-wait"
-          title="Open on HuggingFace"
-          disabled={opening}
-        >
+        <button onClick={handleOpen}
+          className="shrink-0 p-1 rounded hover:bg-accent/20 text-muted hover:text-accent transition-colors relative disabled:opacity-50 disabled:cursor-wait"
+          title="Open on HuggingFace" disabled={opening}>
           {opening ? (
-            <span className="inline-block w-3 h-3 border-2 border-slate-400 border-t-transparent rounded-full animate-spin" />
+            <span className="inline-block w-3 h-3 border-2 border-muted border-t-transparent rounded-full animate-spin" />
           ) : (
             <ExternalLink size={12} />
           )}
@@ -542,45 +496,27 @@ function DatasetRow({
 
       {isExpanded && (
         <div className="px-4 pb-2 space-y-1.5">
-          <p className="text-[11px] text-slate-400 leading-relaxed">
-            {dataset.description.substring(0, 300)}
-            {dataset.description.length > 300 && '...'}
+          <p className="text-[11px] text-muted/80 leading-relaxed">
+            {dataset.description.substring(0, 300)}{dataset.description.length > 300 && '...'}
           </p>
           <div className="flex flex-wrap gap-1">
-            <span className="text-[9px] px-1.5 py-0.5 rounded bg-slate-700 text-slate-400">
-              Format: {dataset.format}
-            </span>
-            <span className="text-[9px] px-1.5 py-0.5 rounded bg-slate-700 text-slate-400">
-              Size: {dataset.size}
-            </span>
-            <span className="text-[9px] px-1.5 py-0.5 rounded bg-slate-700 text-slate-400">
-              License: {dataset.license}
-            </span>
-            <span className="text-[9px] px-1.5 py-0.5 rounded bg-slate-700 text-slate-400">
-              {(dataset.downloads).toLocaleString()} downloads
-            </span>
+            <span className="text-[9px] px-1.5 py-0.5 rounded bg-surface3 text-muted">Format: {dataset.format}</span>
+            <span className="text-[9px] px-1.5 py-0.5 rounded bg-surface3 text-muted">Size: {dataset.size}</span>
+            <span className="text-[9px] px-1.5 py-0.5 rounded bg-surface3 text-muted">License: {dataset.license}</span>
+            <span className="text-[9px] px-1.5 py-0.5 rounded bg-surface3 text-muted">{(dataset.downloads).toLocaleString()} downloads</span>
           </div>
           <div className="flex flex-wrap gap-1.5">
-            <button
-              onClick={handleOpen}
-              className="flex items-center gap-1 text-[10px] bg-indigo-600 hover:bg-indigo-500 text-white px-2 py-1 rounded transition-colors"
-            >
-              <ExternalLink size={10} />
-              Open on HuggingFace
+            <button onClick={handleOpen}
+              className="flex items-center gap-1 text-[10px] bg-accent hover:opacity-80 text-white px-2 py-1 rounded transition-colors">
+              <ExternalLink size={10} /> Open on HuggingFace
             </button>
-            <button className="flex items-center gap-1 text-[10px] bg-slate-700 hover:bg-slate-600 text-slate-200 px-2 py-1 rounded transition-colors">
-              <Brain size={10} />
-              Analyze with AI
+            <button className="flex items-center gap-1 text-[10px] bg-surface3 hover:bg-surface2 text-foreground/80 px-2 py-1 rounded transition-colors">
+              <Brain size={10} /> Analyze with AI
             </button>
           </div>
-          <div className="flex items-center gap-1 text-[9px] text-slate-600">
+          <div className="flex items-center gap-1 text-[9px] text-muted/60">
             <BookOpen size={9} />
-            <span>
-              {dataset.tags
-                .filter((t) => !t.startsWith('region:') && !t.startsWith('library:'))
-                .slice(0, 5)
-                .join(' · ')}
-            </span>
+            <span>{dataset.tags.filter((t) => !t.startsWith('region:') && !t.startsWith('library:')).slice(0, 5).join(' · ')}</span>
           </div>
         </div>
       )}

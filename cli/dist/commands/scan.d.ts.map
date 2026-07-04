@@ -1,0 +1,1 @@
+{"version":3,"file":"scan.d.ts","sourceRoot":"","sources":["../../src/commands/scan.ts"],"names":[],"mappings":"AAAA;;;;;;;;;;GAUG;AAwBH,wBAAsB,WAAW,CAC/B,WAAW,EAAE,MAAM,EAAE,EACrB,OAAO,GAAE;IACP,OAAO,CAAC,EAAE,OAAO,CAAC;IAClB,QAAQ,CAAC,EAAE,MAAM,CAAC;CACd,GACL,OAAO,CAAC,IAAI,CAAC,CAgKf"}

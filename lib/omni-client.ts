@@ -54,8 +54,10 @@ async function tryOllamaFallback(
   userMessage: string,
   onChunk: (text: string) => void,
   signal: AbortSignal,
+  systemPrompt?: string,
 ): Promise<boolean> {
-  const fullPrompt = `${STRICT_GUARDRAIL_PROMPT}\n\nUser Input: ${userMessage}`;
+  const sysPrompt = systemPrompt || STRICT_GUARDRAIL_PROMPT;
+  const fullPrompt = `${sysPrompt}\n\nUser Input: ${userMessage}`;
 
   for (const endpoint of OLLAMA_ENDPOINTS) {
     try {
@@ -111,11 +113,14 @@ export async function streamLLM(
   onChunk: (text: string) => void,
   signal: AbortSignal,
   onLoadProgress?: (p: LoadProgress) => void,
+  systemPrompt?: string,
 ): Promise<void> {
+  const sysPrompt = systemPrompt || STRICT_GUARDRAIL_PROMPT;
+
   // Try WebLLM first (in-browser, always free)
   try {
     await streamWebLLM(
-      STRICT_GUARDRAIL_PROMPT,
+      sysPrompt,
       userMessage,
       modelId,
       onChunk,
@@ -129,7 +134,7 @@ export async function streamLLM(
   }
 
   // Fallback to local Ollama/Llama.cpp/LocalAI
-  const ok = await tryOllamaFallback(userMessage, onChunk, signal);
+  const ok = await tryOllamaFallback(userMessage, onChunk, signal, sysPrompt);
   if (!ok) {
     throw new Error(
       'AI free not available. Install/run a local engine (Ollama on :11434) or use a browser that supports WebGPU (Chrome 113+).',

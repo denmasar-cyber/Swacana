@@ -142,7 +142,7 @@ const SCENARIOS: SeedScenario[] = [
     content:
       'Analisis krisis air bersih di NTT dan NTB. Kekeringan panjang dipicu perubahan iklim, deforestasi di daerah tangkapan air, dan infrastruktur air yang tidak memadai.',
     createdAt: daysAgo(7),
-    updatedAt: daysAgo(0), // updated today
+    updatedAt: daysAgo(0),
     nodes: [
       {
         noteId: '', parentId: null, nodeType: 'ROOT_CAUSE',
@@ -255,7 +255,7 @@ const SCENARIOS: SeedScenario[] = [
       {
         noteId: '', parentId: null, nodeType: 'IMPACT',
         label: 'Kenaikan Harga Pangan',
-        details: 'Harga beras naik 25% YoY. Inflasi pangan mencapai 8%. Daya beli masyarakat kelas bawah tergerus. [Source: BI]',
+        details: 'Harga beras naik 25% YoY. Inflasi pangan mencapai 8%. Daya beli masyarakat bawah tergerus. [Source: BI]',
         targetDate: null, status: 'PENDING',
       },
       {
@@ -352,13 +352,15 @@ export async function seedDemoData(): Promise<void> {
     const noteId = uuid();
     const nodesWithIds = assignHierarchy(scenario.nodes, noteId);
 
-    // Create note
+    // Create note with chatMode field
     await db.notes.add({
       id: noteId,
       title: scenario.title,
       content: scenario.content,
       createdAt: scenario.createdAt,
       updatedAt: scenario.updatedAt,
+      chatMode: 'default',
+      chatModeCustomPrompt: null,
     });
 
     // Create nodes
@@ -398,6 +400,10 @@ export async function resetAndSeed(): Promise<void> {
   await db.notes.clear();
   await db.nodes.clear();
   await db.reminders.clear();
+  await db.datasets.clear();
+  await db.chunks.clear();
+  await db.embeddings.clear();
+  await db.chatMessages.clear();
   await seedDemoData();
   window.location.reload();
 }

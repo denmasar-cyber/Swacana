@@ -1,0 +1,1 @@
+{"version":3,"file":"watch.d.ts","sourceRoot":"","sources":["../../src/commands/watch.ts"],"names":[],"mappings":"AAAA;;;;;;;;;;GAUG;AAoDH,wBAAsB,YAAY,CAChC,WAAW,EAAE,MAAM,EAAE,EACrB,OAAO,GAAE;IACP,OAAO,CAAC,EAAE,OAAO,CAAC;IAClB,QAAQ,CAAC,EAAE,MAAM,CAAC;CACd,GACL,OAAO,CAAC,IAAI,CAAC,CAwGf"}
