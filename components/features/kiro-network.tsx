@@ -3,13 +3,14 @@
 import { useEffect, useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useRouter } from 'next/navigation';
-import { Plus, FileText, Trash2, AlertTriangle, Network, Bell, Clock, Search, LayoutDashboard } from 'lucide-react';
+import { Plus, FileText, Trash2, AlertTriangle, Network, Bell, Clock, Search, LayoutDashboard, Database } from 'lucide-react';
 import { db } from '@/lib/db';
 import { cn } from '@/lib/utils';
 import CausalCorrelationGraph from './causal-correlation';
 import ActivityTimeline from './activity-timeline';
 import AISearch from './ai-search';
 import { requestNotificationPermission, startNotificationMonitor, stopNotificationMonitor } from '@/lib/notification-manager';
+import { seedDemoData, resetAndSeed } from '@/lib/seed';
 
 type HomeView = 'graph' | 'timeline' | 'search';
 
@@ -21,7 +22,7 @@ export default function KiroNetwork() {
   const notes = useLiveQuery(() => db.notes.orderBy('updatedAt').reverse().toArray(), []);
   const allNodes = useLiveQuery(() => db.nodes.toArray(), []);
 
-  // ── Start notifications on mount ──
+  // ── Auto-seed on first mount if DB is empty ──
   useEffect(() => {
     requestNotificationPermission();
     startNotificationMonitor(60000);
@@ -36,6 +37,15 @@ export default function KiroNetwork() {
       stopNotificationMonitor();
     };
   }, []);
+
+  // Seed if empty
+  const [seeding, setSeeding] = useState(false);
+  useEffect(() => {
+    if (notes !== undefined && notes.length === 0 && !seeding) {
+      setSeeding(true);
+      seedDemoData().catch(console.error).finally(() => setSeeding(false));
+    }
+  }, [notes, seeding]);
 
   const createNote = async () => {
     const id = crypto.randomUUID();
@@ -141,6 +151,11 @@ export default function KiroNetwork() {
             </div>
           )}
 
+          <button onClick={() => resetAndSeed()}
+            className="flex items-center gap-1.5 bg-slate-700 hover:bg-slate-600 text-slate-300 px-2 py-1.5 rounded-lg text-[10px] font-medium transition-colors"
+            title="Reset and re-seed demo data">
+            <Database size={12} /> Reseed
+          </button>
           <button onClick={createNote}
             className="flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-500 text-white px-3 py-1.5 rounded-lg text-xs font-medium transition-colors">
             <Plus size={14} /> New Analysis
