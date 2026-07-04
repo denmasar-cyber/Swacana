@@ -1,12 +1,12 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useRouter } from 'next/navigation';
 import {
   Plus, FileText, Trash2, Clock, Sparkles, Menu,
   Moon, Sun, Download, Upload, Lightbulb, BookOpen,
-  Search, Pin,
+  Search, Pin, HelpCircle, Check,
 } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import { db } from '@/lib/db';
@@ -20,6 +20,7 @@ const CausalCorrelationGraph = dynamic(() => import('./causal-correlation'), {
   loading: () => <div className="h-full flex items-center justify-center text-muted text-xs"><div className="w-4 h-4 border-2 border-accent border-t-transparent rounded-full animate-spin mr-2" /> Loading graph...</div>,
 });
 import { requestNotificationPermission, startNotificationMonitor, stopNotificationMonitor } from '@/lib/notification-manager';
+import { autoLoadRequiredModels, getModelStatus, subscribeModelStatus, loadGenerationModel, loadEmbeddingModel, type AIModelEntry } from '@/lib/ai-requirements';
 import { seedDemoData, resetAndSeed } from '@/lib/seed';
 import AISearch from './ai-search';
 import ActivityTimeline from './activity-timeline';
@@ -64,9 +65,15 @@ const ANALYSIS_TEMPLATES = [
 export default function KiroNetwork() {
   const router = useRouter();
   const [view, setView] = useState<HomeView>('board');
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(() => {
+    if (typeof window === 'undefined') return true;
+    return window.innerWidth >= 768;
+  });
   const [showTemplates, setShowTemplates] = useState(false);
   const [isDark, setIsDark] = useState(true);
+  const [aiModels, setAiModels] = useState<AIModelEntry[]>([]);
+  const [aiLoadProgress, setAiLoadProgress] = useState<Record<string, { text: string; progress: number }>>({});
+  const [aiLoadingId, setAiLoadingId] = useState<string | null>(null);
 
   const notes = useLiveQuery(() => db.notes.orderBy('updatedAt').reverse().toArray(), []);
   const allNodes = useLiveQuery(() => db.nodes.toArray(), []);
@@ -87,10 +94,56 @@ export default function KiroNetwork() {
     }
   }, []);
 
+  // ── AI Model Status Tracking ──
+  const refreshModels = useCallback(() => {
+    setAiModels([...getModelStatus()]);
+  }, []);
+
+  useEffect(() => {
+    refreshModels();
+    const unsub = subscribeModelStatus((id, status) => {
+      refreshModels();
+      if (status.progress) {
+        setAiLoadProgress((prev) => ({ ...prev, [id]: { text: status.progress!.text, progress: status.progress!.progress } }));
+      }
+      if (status.loaded) {
+        setAiLoadProgress((prev) => { const next = { ...prev }; delete next[id]; return next; });
+        setAiLoadingId((cur) => (cur === id ? null : cur));
+      }
+      if (!status.loading && !status.loaded) {
+        setAiLoadingId((cur) => (cur === id ? null : cur));
+      }
+    });
+    const interval = setInterval(refreshModels, 3000);
+    return () => { unsub(); clearInterval(interval); };
+  }, [refreshModels]);
+
+  const handleRetryModel = useCallback(async (model: AIModelEntry) => {
+    setAiLoadingId(model.id);
+    setAiLoadProgress((prev) => ({ ...prev, [model.id]: { text: 'Memuat ulang...', progress: 0 } }));
+    try {
+      if (model.type === 'embedding') {
+        await loadEmbeddingModel((p) => {
+          setAiLoadProgress((prev) => ({ ...prev, [model.id]: { text: p.message || 'Memuat...', progress: p.total > 0 ? p.current / p.total : 0 } }));
+        });
+      } else {
+        await loadGenerationModel(model.id, (p) => {
+          setAiLoadProgress((prev) => ({ ...prev, [model.id]: { text: p.text, progress: p.progress } }));
+        });
+      }
+    } catch (err) {
+      setAiLoadProgress((prev) => ({ ...prev, [model.id]: { text: `Gagal: ${(err as Error).message}`, progress: 0 } }));
+    } finally {
+      setAiLoadingId(null);
+      refreshModels();
+    }
+  }, [refreshModels]);
+
   // ── Auto-seed on first mount if DB is empty ──
   useEffect(() => {
     requestNotificationPermission();
     startNotificationMonitor(60000);
+    autoLoadRequiredModels(); // Start downloading AI models immediately
     return () => { stopNotificationMonitor(); };
   }, []);
 
@@ -165,10 +218,12 @@ export default function KiroNetwork() {
     <div className={cn('h-screen flex overflow-hidden', isDark ? 'dark' : '')}>
       {/* ── Minimal Sidebar ── */}
       <aside className={cn(
-        'flex flex-col border-r shrink-0 transition-all duration-300 z-20 bg-surface/90 backdrop-blur-sm',
+        'flex flex-col border-r shrink-0 transition-all duration-300 z-20 bg-surface/90 backdrop-blur-sm overflow-hidden',
         'border-border',
-        sidebarOpen ? 'w-64' : 'w-0 overflow-hidden',
+        sidebarOpen ? 'w-64' : 'w-0',
       )}>
+        {/* Scrollable sidebar content */}
+        <div className="flex-1 overflow-y-auto overflow-x-hidden note-scroll flex flex-col">
         <div className="px-4 py-4 border-b border-border shrink-0">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-accent to-accent2 flex items-center justify-center shadow-lg shadow-accent/20">
@@ -191,6 +246,11 @@ export default function KiroNetwork() {
             className="w-full flex items-center justify-center gap-2 px-4 py-2.5 text-xs font-medium rounded-xl bg-surface2 text-foreground hover:bg-surface3 border border-border transition-all">
             <Lightbulb size={14} />
             Template
+          </button>
+          <button onClick={() => router.push('/tutorial')}
+            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 text-xs font-medium rounded-xl bg-surface2 text-foreground hover:bg-surface3 border border-border transition-all">
+            <HelpCircle size={14} />
+            Tutorial
           </button>
           {showTemplates && (
             <div className="space-y-1 max-h-48 overflow-y-auto rounded-xl border border-border p-1.5 bg-surface2 animate-scale-in">
@@ -235,9 +295,57 @@ export default function KiroNetwork() {
         {/* CLI Dashboard Bridge — show CLI agent data inside sidebar */}
         <CliDashboardBridge />
 
-        <div className="flex-1" />
+        {/* ── AI Model Status ── */}
+        <div className="px-3 py-3 border-t border-border">
+          <p className="section-title px-1 flex items-center gap-1.5">
+            <Download size={10} />
+            Model AI
+          </p>
+          <div className="space-y-1.5">
+            {aiModels.map((model) => {
+              const progress = aiLoadProgress[model.id];
+              const isLoading = aiLoadingId === model.id || model.loading;
+              const progressPct = progress ? Math.round(progress.progress * 100) : 0;
+              return (
+                <div key={model.id} className="rounded-lg border border-border bg-surface px-2.5 py-2">
+                  <div className="flex items-center justify-between gap-1.5">
+                    <div className="flex-1 min-w-0">
+                      <span className="text-[10px] font-medium text-foreground truncate block">{model.name}</span>
+                      <span className="text-[8px] text-muted">{model.size}</span>
+                    </div>
+                    {model.loaded ? (
+                      <span className="text-[8px] text-success flex items-center gap-0.5 shrink-0">
+                        <Check size={8} /> Siap
+                      </span>
+                    ) : isLoading ? (
+                      <span className="text-[8px] text-accent shrink-0">{progressPct}%</span>
+                    ) : (
+                      <button onClick={() => handleRetryModel(model)}
+                        className="text-[8px] text-muted hover:text-accent transition-colors shrink-0">
+                        Muat
+                      </button>
+                    )}
+                  </div>
+                  {(isLoading || (progress && progress.progress > 0)) && !model.loaded && (
+                    <div className="mt-1.5">
+                      <div className="h-1 bg-surface2 rounded-full overflow-hidden">
+                        <div className="h-full bg-gradient-to-r from-accent to-accent2 rounded-full transition-all duration-300"
+                          style={{ width: `${progressPct}%` }} />
+                      </div>
+                      {progress && (
+                        <p className="text-[7px] text-muted mt-0.5 truncate">{progress.text}</p>
+                      )}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
 
-        <div className="px-3 py-3 border-t border-border shrink-0 space-y-2">
+        </div>
+        {/* Sticky bottom actions */}
+        <div className="px-3 py-3 border-t border-border shrink-0 space-y-2 bg-surface/90 backdrop-blur-sm">
           <button onClick={toggleTheme}
             className="w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-[10px] text-muted hover:text-foreground hover:bg-surface2 border border-border transition-all">
             {isDark ? <Sun size={11} /> : <Moon size={11} />}
@@ -292,7 +400,7 @@ export default function KiroNetwork() {
         </header>
 
         {/* ── Content ── */}
-        <div className="flex-1 min-h-0 overflow-y-auto note-scroll">
+        <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden note-scroll">
           {(!notes || notes.length === 0) && view === 'board' ? (
             /* ── Empty State ── */
             <div className="h-full flex flex-col items-center justify-center px-6 animate-fade-in">

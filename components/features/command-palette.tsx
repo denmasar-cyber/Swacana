@@ -80,6 +80,22 @@ export default function CommandPalette({ isOpen, onClose }: Props) {
       icon: Sun,
       action: toggleTheme,
     },
+    {
+      id: 'go-board',
+      category: 'Actions',
+      label: 'Buka Papan Catatan',
+      description: 'Lihat semua catatan dalam tampilan grid',
+      icon: FileText,
+      action: () => router.push('/'),
+    },
+    {
+      id: 'go-search',
+      category: 'Actions',
+      label: 'Cari Catatan',
+      description: 'Temukan catatan berdasarkan kata kunci',
+      icon: Search,
+      action: () => router.push('/'),
+    },
     ...(notes as Note[]).map((note) => ({
       id: `note-${note.id}`,
       category: 'Notes' as const,
@@ -184,7 +200,7 @@ export default function CommandPalette({ isOpen, onClose }: Props) {
       <div className="absolute inset-0 bg-background/60 backdrop-blur-sm" />
 
       <div
-        className="absolute left-1/2 top-[12vh] -translate-x-1/2 w-[580px] max-w-[90vw] rounded-xl bg-surface border border-border shadow-2xl overflow-hidden animate-scale-in"
+        className="absolute left-1/2 top-[12vh] -translate-x-1/2 w-[580px] max-w-[90vw] rounded-xl bg-surface border border-border shadow-2xl animate-scale-in overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Search input */}
@@ -202,7 +218,7 @@ export default function CommandPalette({ isOpen, onClose }: Props) {
         </div>
 
         {/* Results */}
-        <div ref={listRef} className="max-h-80 overflow-y-auto">
+        <div ref={listRef} className="max-h-80 overflow-y-auto note-scroll">
           {Object.keys(grouped).length === 0 ? (
             <div className="flex flex-col items-center justify-center py-8 text-muted animate-fade-in">
               <Search size={20} className="mb-2 opacity-30" />

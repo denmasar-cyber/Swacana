@@ -191,7 +191,7 @@ export default function SourcesPanel({ noteId }: Props) {
   const datasetsList = datasets as Dataset[];
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full overflow-hidden">
       <div className="px-3 py-2 border-b border-border shrink-0">
         <div className="flex items-center justify-between mb-2">
           <span className="text-[10px] uppercase tracking-widest text-muted font-semibold flex items-center gap-1.5">
@@ -208,7 +208,7 @@ export default function SourcesPanel({ noteId }: Props) {
         </button>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-2 space-y-1.5">
+      <div className="flex-1 overflow-y-auto overflow-x-hidden p-2 space-y-1.5 note-scroll">
         {datasetsList.length === 0 && (
           <div className="flex flex-col items-center justify-center h-32 text-muted text-xs text-center px-4">
             <Database size={20} className="mb-2 opacity-30" />

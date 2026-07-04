@@ -71,8 +71,8 @@ export const AI_REQUIREMENTS: AIModelEntry[] = [
     type: 'generation',
     size: '2.2GB',
     description: 'Excellent reasoning, good for analysis',
-    required: false,
-    autoLoad: false,
+    required: true,
+    autoLoad: true,
     loaded: false,
     loading: false,
   },
@@ -144,38 +144,72 @@ export async function autoLoadRequiredModels(
 
   console.log('[AI-Requirements] Auto-loading required models...');
 
-  // Auto-load embedding model (required for RAG)
   const embeddingReq = AI_REQUIREMENTS.find(
     (r) => r.type === 'embedding' && r.autoLoad,
   );
+  const generationReq = AI_REQUIREMENTS.find(
+    (r) => r.type === 'generation' && r.autoLoad,
+  );
+
+  // Load both models in parallel for faster startup
+  const tasks: Promise<void>[] = [];
+
+  // Embedding model task
   if (embeddingReq && !isEmbeddingEngineReady()) {
-    try {
-      embeddingReq.loading = true;
-      notifyModelStatus(embeddingReq.id, { loaded: false, loading: true });
-      console.log('[AI-Requirements] Loading embedding model...');
-      await initEmbeddingEngine((progress) => {
-        onProgress?.(embeddingReq.id, {
-          text: progress.message || `Embedding: ${progress.current}/${progress.total}`,
-          progress: progress.total > 0 ? progress.current / progress.total : 0,
-        });
-      });
-      embeddingReq.loaded = true;
-      embeddingReq.loading = false;
-      notifyModelStatus(embeddingReq.id, { loaded: true, loading: false });
-      console.log('[AI-Requirements] Embedding model ready');
-    } catch (err) {
-      embeddingReq.loading = false;
-      console.warn('[AI-Requirements] Embedding model load failed:', err);
-      notifyModelStatus(embeddingReq.id, {
-        loaded: false,
-        loading: false,
-        progress: {
-          text: `Failed: ${(err as Error).message}`,
-          progress: 0,
-        },
-      });
-    }
+    tasks.push(
+      (async () => {
+        try {
+          notifyModelStatus(embeddingReq.id, { loaded: false, loading: true });
+          console.log('[AI-Requirements] Loading embedding model...');
+          await initEmbeddingEngine((progress) => {
+            onProgress?.(embeddingReq.id, {
+              text: progress.message || `Embedding: ${progress.current}/${progress.total}`,
+              progress: progress.total > 0 ? progress.current / progress.total : 0,
+            });
+          });
+          notifyModelStatus(embeddingReq.id, { loaded: true, loading: false });
+          console.log('[AI-Requirements] Embedding model ready');
+        } catch (err) {
+          console.warn('[AI-Requirements] Embedding model load failed:', err);
+          notifyModelStatus(embeddingReq.id, {
+            loaded: false,
+            loading: false,
+            progress: { text: `Gagal: ${(err as Error).message}`, progress: 0 },
+          });
+        }
+      })(),
+    );
   }
+
+  // Generation model task — delegate state management to loadGenerationModel
+  if (generationReq && !isEngineLoaded(generationReq.id)) {
+    tasks.push(
+      (async () => {
+        try {
+          notifyModelStatus(generationReq.id, { loaded: false, loading: true });
+          console.log(`[AI-Requirements] Loading generation model: ${generationReq.name}...`);
+          await loadGenerationModel(generationReq.id, (p) => {
+            onProgress?.(generationReq.id, p);
+            notifyModelStatus(generationReq.id, { loaded: false, loading: true, progress: p });
+          });
+          console.log(`[AI-Requirements] Generation model ready: ${generationReq.name}`);
+        } catch (err) {
+          console.warn('[AI-Requirements] Generation model load failed:', err);
+          notifyModelStatus(generationReq.id, {
+            loaded: false,
+            loading: false,
+            progress: { text: `Gagal memuat model: ${(err as Error).message}`, progress: 0 },
+          });
+        }
+      })(),
+    );
+  }
+
+  if (tasks.length > 0) {
+    await Promise.allSettled(tasks);
+  }
+
+  console.log('[AI-Requirements] Auto-load complete');
 }
 
 /**

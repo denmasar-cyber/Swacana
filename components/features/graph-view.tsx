@@ -193,7 +193,7 @@ export default function GraphView() {
     typeof e.target === 'string' ? e.target : (e.target as any).id || '';
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full overflow-hidden">
       <div className="flex items-center gap-2 px-3 py-1.5 border-b border-border shrink-0">
         <div className="relative flex-1">
           <Search size={10} className="absolute left-2 top-1/2 -translate-y-1/2 text-muted" />

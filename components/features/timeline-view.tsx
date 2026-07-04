@@ -142,7 +142,7 @@ export default function TimelineView() {
   }
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full overflow-hidden">
       <div className="flex items-center gap-2 px-3 py-1.5 border-b border-border shrink-0">
         <span className="text-[10px] uppercase tracking-wider text-muted font-semibold flex items-center gap-1">
           <Clock size={10} /> Timeline
@@ -166,7 +166,7 @@ export default function TimelineView() {
         </div>
       </div>
 
-      <div className="flex-1 min-h-0 overflow-auto p-3">
+      <div className="flex-1 min-h-0 overflow-auto p-3 note-scroll">
         <div className="relative">
           <div className="flex mb-6 relative h-4">
             {monthMarkers.map((marker, i) => (

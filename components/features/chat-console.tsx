@@ -141,7 +141,7 @@ export default function ChatConsole({ onStream }: Props) {
   };
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full overflow-hidden">
       <ModelLoader
         selectedModelId={selectedModelId}
         onModelChange={setSelectedModelId}
@@ -149,11 +149,11 @@ export default function ChatConsole({ onStream }: Props) {
         loadProgress={loadProgress}
       />
 
-      <div className="flex-1 overflow-y-auto px-3 py-2 space-y-3 min-h-0">
+      <div className="flex-1 overflow-y-auto overflow-x-hidden px-3 py-2 space-y-3 min-h-0 note-scroll">
         {messages.length === 0 && (
           <div className="text-muted text-xs text-center mt-8 px-4 leading-relaxed">
-            Load a model above, then describe a problem or goal.
-            The AI will map it as a decision tree on the right.
+            Muat model AI di atas, lalu deskripsikan masalah atau tujuanmu.
+            AI akan memetakannya sebagai decision tree di panel kanan.
           </div>
         )}
         {messages.map((msg, i) => (
@@ -201,7 +201,7 @@ export default function ChatConsole({ onStream }: Props) {
               handleSend();
             }
           }}
-          placeholder="Describe your problem or situation… (Enter to send)"
+          placeholder="Deskripsikan masalah atau situasimu… (Enter untuk mengirim)"
           rows={2}
           className="flex-1 bg-surface2 text-foreground text-xs rounded px-2 py-1.5 border border-border focus:outline-none focus:border-accent resize-none"
           disabled={isStreaming}

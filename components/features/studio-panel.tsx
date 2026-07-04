@@ -78,7 +78,7 @@ export default function StudioPanel({ noteId }: Props) {
 
     const modelId = getCurrentModelId() || DEFAULT_MODEL_ID;
     if (!isEngineLoaded(modelId)) {
-      setErrors((prev) => ({ ...prev, [action.id]: 'Load a model first in AI Chat panel.' }));
+      setErrors((prev) => ({ ...prev, [action.id]: 'Muat model AI terlebih dahulu di panel AI Chat.' }));
       return;
     }
 
@@ -91,7 +91,7 @@ export default function StudioPanel({ noteId }: Props) {
     if (!noteContent?.trim()) {
       setErrors((prev) => ({
         ...prev,
-        [action.id]: 'Write some analysis notes first.',
+        [action.id]: 'Tulis catatan analisis terlebih dahulu.',
       }));
       setLoading((prev) => ({ ...prev, [action.id]: false }));
       return;
@@ -134,13 +134,13 @@ export default function StudioPanel({ noteId }: Props) {
   const hasContent = (note?.content?.trim()?.length ?? 0) > 0;
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full overflow-hidden">
       <div className="px-3 py-2 border-b border-border shrink-0">
         <div className="flex items-center gap-1.5">
           <Sparkles size={10} className="text-accent" />
           <span className="text-[10px] uppercase tracking-widest text-muted font-semibold">Studio</span>
         </div>
-        <p className="text-[9px] text-muted mt-0.5">Generate structured outputs from your analysis and data</p>
+        <p className="text-[9px] text-muted mt-0.5">Hasilkan output terstruktur dari analisis dan datamu</p>
       </div>
 
       <div className="p-2 space-y-2">
@@ -183,13 +183,13 @@ export default function StudioPanel({ noteId }: Props) {
       </div>
 
       {!hasContent && (
-        <div className="px-2 py-4 text-center"><p className="text-[10px] text-muted">Write analysis notes first to enable Studio generation.</p></div>
+        <div className="px-2 py-4 text-center">        <p className="text-[10px] text-muted">Tulis catatan analisis terlebih dahulu untuk mengaktifkan Studio.</p></div>
       )}
 
       <div className="mt-auto px-3 py-2 border-t border-border shrink-0">
         <div className="flex items-center gap-1 text-[9px] text-muted">
           <Sparkles size={8} className="text-accent" />
-          <span>Powered by WebLLM + RAG</span>
+          <span>Didukung WebLLM + RAG</span>
         </div>
       </div>
     </div>

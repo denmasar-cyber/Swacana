@@ -98,14 +98,14 @@ export default function BoardView() {
   }
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full overflow-hidden">
       <div className="flex items-center gap-2 px-3 py-1.5 border-b border-border shrink-0">
         <Columns size={10} className="text-muted" />
         <span className="text-[10px] uppercase tracking-wider text-muted font-semibold">Board</span>
         <span className="text-[9px] text-muted ml-auto">{mitigations.filter((n) => n.status === 'DONE').length}/{mitigations.length} done</span>
       </div>
 
-      <div className="flex-1 min-h-0 flex gap-3 p-3 overflow-x-auto">
+      <div className="flex-1 min-h-0 flex gap-3 p-3 overflow-x-auto note-scroll">
         {COLUMNS.map((column) => {
           const items = mitigations.filter(column.filter);
           const isOver = dragOver === column.id;
@@ -123,7 +123,7 @@ export default function BoardView() {
                 <span className="text-[9px] text-muted ml-auto">{items.length}</span>
               </div>
 
-              <div className="flex-1 overflow-y-auto p-2 space-y-1.5">
+              <div className="flex-1 overflow-y-auto overflow-x-hidden p-2 space-y-1.5 note-scroll">
                 {items.length === 0 ? (
                   <div className="flex items-center justify-center h-24 text-[9px] text-muted border-2 border-dashed border-border rounded-lg">Drop tasks here</div>
                 ) : (

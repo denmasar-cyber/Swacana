@@ -35,10 +35,10 @@ export interface HoverLiftProps {
 }
 
 export function HoverLift({ scale = 1.02, lift = 3, className, children, onClick }: HoverLiftProps) {
-  const motion = useHoverMotion(scale, lift);
+  const { isHovered: _isHovered, ...motionProps } = useHoverMotion(scale, lift);
 
   return (
-    <div className={cn('cursor-pointer', className)} {...motion} onClick={onClick}>
+    <div className={cn('cursor-pointer', className)} {...motionProps} onClick={onClick}>
       {children}
     </div>
   );

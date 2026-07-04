@@ -130,7 +130,7 @@ export default function CliDashboardBridge() {
   ];
 
   return (
-    <div className="border-t border-border mt-auto">
+    <div className="border-t border-border">
       <button
         onClick={() => setExpanded(!expanded)}
         className={cn(

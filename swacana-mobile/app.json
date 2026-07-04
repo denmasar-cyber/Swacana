@@ -6,10 +6,6 @@
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
-    "splash": {
-      "backgroundColor": "#1a1512",
-      "resizeMode": "contain"
-    },
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.swacana.mobile",
@@ -25,7 +21,9 @@
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
       "package": "com.swacana.mobile",
-      "permissions": ["CAMERA"]
+      "permissions": [
+        "CAMERA"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png",
@@ -33,11 +31,19 @@
     },
     "plugins": [
       [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#1a1512",
+          "resizeMode": "contain"
+        }
+      ],
+      [
         "expo-camera",
         {
           "cameraPermission": "Swacana needs camera access to scan QR codes and barcodes."
         }
-      ]
+      ],
+      "expo-status-bar"
     ]
   }
 }

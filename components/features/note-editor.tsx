@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useCallback, useEffect, useRef } from 'react';
-import { Edit3, FileSearch, Database, Sparkles, Check, X, Save, Maximize2, Minimize2, BookOpen, Clock } from 'lucide-react';
+import { Edit3, FileSearch, Database, Sparkles, Check, X, Save, Maximize2, Minimize2, BookOpen, Clock, Bold, Italic, Strikethrough, Heading1, Heading2, Heading3, List, ListOrdered, Code, TextQuote, Minus } from 'lucide-react';
 import { db } from '@/lib/db';
 import { cn } from '@/lib/utils';
 import { streamLLM } from '@/lib/omni-client';
@@ -16,9 +16,9 @@ interface AIAction {
 }
 
 const AI_ACTIONS: AIAction[] = [
-  { icon: Edit3, label: 'Edit', action: 'edit', description: 'Perbaiki tata bahasa & struktur' },
-  { icon: FileSearch, label: 'Review', action: 'review', description: 'Review & feedback otomatis' },
-  { icon: Database, label: 'Scrap', action: 'scrap', description: 'Ekstrak data terstruktur' },
+  { icon: Edit3, label: 'Edit', action: 'edit', description: 'Perbaiki tata bahasa & struktur tulisan' },
+  { icon: FileSearch, label: 'Review', action: 'review', description: 'Analisis & umpan balik otomatis' },
+  { icon: Database, label: 'Scrap', action: 'scrap', description: 'Ekstrak data terstruktur dari teks' },
 ];
 
 const ACTION_PROMPTS: Record<string, string> = {
@@ -43,6 +43,7 @@ export default function NoteEditor({ noteId, initialContent = '' }: Props) {
   const [expanded, setExpanded] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
   const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const contentRef = useRef(content);
   useEffect(() => { contentRef.current = content; }, [content]);
 
@@ -126,6 +127,26 @@ export default function NoteEditor({ noteId, initialContent = '' }: Props) {
     setAiResult(null);
   }, [aiResult, activeAction, saveToDb]);
 
+  const insertMarkdown = useCallback((before: string, after: string = '') => {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const currentContent = contentRef.current;
+    const selected = currentContent.substring(start, end);
+    const replacement = before + (selected || 'teks') + after;
+    const newText = currentContent.substring(0, start) + replacement + currentContent.substring(end);
+    setContent(newText);
+    if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
+    saveTimeoutRef.current = setTimeout(() => saveToDb(newText), 800);
+    setTimeout(() => {
+      textarea.focus();
+      const selectStart = start + before.length;
+      const selectEnd = selected ? selectStart + selected.length + after.length : selectStart + 4;
+      textarea.setSelectionRange(selectStart, selectEnd);
+    }, 10);
+  }, [saveToDb]);
+
   const dismissResult = () => {
     abortRef.current?.abort();
     setActiveAction(null);
@@ -174,6 +195,27 @@ export default function NoteEditor({ noteId, initialContent = '' }: Props) {
           </button>
         ))}
 
+        <span className="w-px h-3 bg-border mx-0.5" />
+
+        {/* Rich Text Formatting */}
+        <button onClick={() => insertMarkdown('**', '**')} className="tool-btn" title="Tebal"><Bold size={11} /></button>
+        <button onClick={() => insertMarkdown('*', '*')} className="tool-btn" title="Miring"><Italic size={11} /></button>
+        <button onClick={() => insertMarkdown('~~', '~~')} className="tool-btn" title="Coret"><Strikethrough size={11} /></button>
+
+        <span className="w-px h-3 bg-border mx-0.5" />
+
+        <button onClick={() => insertMarkdown('# ')} className="tool-btn" title="Heading 1"><Heading1 size={11} /></button>
+        <button onClick={() => insertMarkdown('## ')} className="tool-btn" title="Heading 2"><Heading2 size={11} /></button>
+        <button onClick={() => insertMarkdown('### ')} className="tool-btn" title="Heading 3"><Heading3 size={11} /></button>
+
+        <span className="w-px h-3 bg-border mx-0.5" />
+
+        <button onClick={() => insertMarkdown('- ')} className="tool-btn" title="Daftar"><List size={11} /></button>
+        <button onClick={() => insertMarkdown('1. ')} className="tool-btn" title="Daftar Bernomor"><ListOrdered size={11} /></button>
+        <button onClick={() => insertMarkdown('> ')} className="tool-btn" title="Kutipan"><TextQuote size={11} /></button>
+        <button onClick={() => insertMarkdown('\`', '\`')} className="tool-btn" title="Kode"><Code size={11} /></button>
+        <button onClick={() => insertMarkdown('\n---\n')} className="tool-btn" title="Garis Pemisah"><Minus size={11} /></button>
+
         <div className="ml-auto flex items-center gap-2">
           {isSaving ? (
             <span className="flex items-center gap-1 text-[9px] text-muted">
@@ -200,9 +242,10 @@ export default function NoteEditor({ noteId, initialContent = '' }: Props) {
       </div>
 
       {/* ── Content Area ── */}
-      <div className="flex-1 min-h-0 flex">
-        <div className={cn('flex-1 flex flex-col min-h-0', aiResult && 'border-r border-border/50')}>
+      <div className="flex-1 min-h-0 flex overflow-hidden">
+        <div className={cn('flex-1 flex flex-col min-h-0 overflow-hidden', aiResult && 'border-r border-border/50')}>
           <textarea
+            ref={textareaRef}
             value={content}
             onChange={handleChange}
             placeholder="Tulis catatan, diary, curhatan, atau tujuanmu di sini...
@@ -215,7 +258,7 @@ AI akan otomatis membantu memetakan solusi dan plan.
 
         {/* AI Result Panel */}
         {(aiResult || aiError) && (
-          <div className="w-1/2 flex flex-col min-h-0 bg-surface2/30">
+          <div className="w-1/2 flex flex-col min-h-0 bg-surface2/30 overflow-hidden">
             <div className="px-4 py-2 border-b border-border/50 shrink-0 flex items-center gap-1.5">
               <Sparkles size={10} className="text-accent" />
               <span className="text-[9px] uppercase tracking-wider text-accent font-semibold">
@@ -224,7 +267,7 @@ AI akan otomatis membantu memetakan solusi dan plan.
                 {activeAction === 'scrap' && 'AI Ekstrak'}
               </span>
             </div>
-            <div className="flex-1 overflow-y-auto px-4 py-3 note-scroll">
+            <div className="flex-1 overflow-y-auto overflow-x-hidden px-4 py-3 note-scroll">
               {isProcessing ? (
                 <div className="flex items-center gap-2 text-muted text-xs">
                   <Sparkles size={12} className="animate-pulse text-accent" /> Memproses...

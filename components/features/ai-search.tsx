@@ -138,9 +138,8 @@ export default function AISearch() {
   };
 
   return (
-    <div className="flex flex-col h-full">
-      {/* Search bar */}
-      <div className="px-3 py-2 border-b border-slate-700/50 shrink-0">
+    <div className="flex flex-col h-full overflow-hidden">
+      {/* Search bar */}        <div className="px-3 py-2 border-b border-border/50 shrink-0">
         <form onSubmit={handleSearch} className="flex gap-1">
           <div className="relative flex-1">
             <Search size={12} className="absolute left-2 top-1/2 -translate-y-1/2 text-muted" />
@@ -149,7 +148,7 @@ export default function AISearch() {
               type="text"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search across all analyses..."
+              placeholder="Cari di semua catatan..."
               className="w-full bg-surface2 text-foreground text-[11px] rounded pl-6 pr-7 py-1.5 border border-border focus:outline-none focus:border-accent/50 placeholder:text-muted"
             />
             {query && (
@@ -179,20 +178,20 @@ export default function AISearch() {
       </div>
 
       {/* Results */}
-      <div className="flex-1 overflow-y-auto min-h-0">
+      <div className="flex-1 overflow-y-auto overflow-x-hidden min-h-0 note-scroll">
         {!hasSearched ? (
           <div className="h-full flex flex-col items-center justify-center text-muted px-4">
             <Search size={24} className="mb-2 opacity-30" />
-            <p className="text-xs text-center">Search across all your analyses.</p>
+            <p className="text-xs text-center">Cari di semua catatanmu.</p>
             <p className="text-[10px] text-muted/60 text-center mt-1">
-              {searchMode === 'ai' ? 'AI mode uses WebLLM for semantic ranking.' : 'Simple mode matches keywords in titles and content.'}
+              {searchMode === 'ai' ? 'Mode AI menggunakan WebLLM untuk perankingan semantik.' : 'Mode sederhana mencocokkan kata kunci di judul dan konten.'}
             </p>
           </div>
         ) : results.length === 0 ? (
           <div className="h-full flex flex-col items-center justify-center text-muted px-4">
             <FileText size={24} className="mb-2 opacity-30" />
-            <p className="text-xs text-center">No results found.</p>
-            <p className="text-[10px] text-muted/60 text-center mt-1">Try different search terms.</p>
+            <p className="text-xs text-center">            Tidak ada hasil ditemukan.</p>
+            <p className="text-[10px] text-muted/60 text-center mt-1">            Coba kata kunci lain.</p>
           </div>
         ) : (
           <div className="divide-y divide-border/50">
@@ -221,7 +220,7 @@ export default function AISearch() {
       </div>
 
       <div className="px-3 py-1 border-t border-border/50 shrink-0 text-[9px] text-muted/60">
-        {hasSearched ? `${results.length} result${results.length !== 1 ? 's' : ''} · ${notes?.length ?? 0} analyses` : `${notes?.length ?? 0} analyses indexed`}
+        {hasSearched ? `${results.length} hasil · ${notes?.length ?? 0} catatan` : `${notes?.length ?? 0} catatan terindeks`}
       </div>
     </div>
   );

@@ -26,7 +26,7 @@ import ModelManager from '@/components/features/model-manager';
 import CollaborationBar from '@/components/features/collaboration-bar';
 import CommandPalette, { useCommandPalette } from '@/components/features/command-palette';
 
-type PanelTab = 'chat' | 'sources' | 'models' | 'studio';
+type PanelTab = 'chat' | 'sources' | 'models' | 'studio' | 'mindmap';
 
 interface Props {
   noteId: string;
@@ -202,6 +202,7 @@ export default function NoteWorkspace({ noteId }: Props) {
                 { key: 'sources', icon: BookOpen, label: 'Sumber' },
                 { key: 'models', icon: Brain, label: 'Model' },
                 { key: 'studio', icon: Sparkles, label: 'Studio' },
+                { key: 'mindmap', icon: GitBranch, label: 'Mind Map' },
               ] as const).map((p) => (
                 <button key={p.key} onClick={() => setActivePanel(p.key)}
                   className={cn('tool-btn', activePanel === p.key && 'bg-accent/12 text-accent')}
@@ -210,7 +211,14 @@ export default function NoteWorkspace({ noteId }: Props) {
                 </button>
               ))}
               <span className="w-px h-4 bg-border mx-0.5" />
-              <button onClick={() => setRightPanel(rightPanel === 'mindmap' ? 'none' : 'mindmap')}
+              <button onClick={() => {
+                if (rightPanel === 'mindmap') {
+                  setRightPanel('none');
+                } else {
+                  setRightPanel('mindmap');
+                  setActivePanel('mindmap');
+                }
+              }}
                 className={cn('tool-btn', rightPanel === 'mindmap' && 'bg-accent/12 text-accent')}
                 title="Mind Map">
                 <GitBranch size={14} />
@@ -227,25 +235,24 @@ export default function NoteWorkspace({ noteId }: Props) {
         </header>
 
         {/* ── Content ── */}
-        <div className="flex-1 flex min-h-0">
+        <div className="flex-1 flex min-h-0 overflow-hidden">
           {/* LEFT: Note Editor */}
-          <div className="flex-1 flex flex-col min-w-0">
-            <div className="flex-1 min-h-0">
+          <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+            <div className="flex-1 min-h-0 overflow-hidden">
               <NoteEditor key={noteId} noteId={noteId} initialContent={note.content} />
             </div>
           </div>
 
           {/* RIGHT: Panels (collapsible) */}
           {rightPanel === 'mindmap' && (
-            <div className="w-80 flex flex-col border-l border-border shrink-0 bg-surface/30">
-              {/* Panel content based on active tab */}
+            <div className="w-96 flex flex-col border-l border-border shrink-0 bg-surface/30 overflow-hidden">
               {activePanel === 'chat' && (
-                <div className="flex flex-col h-full">
-                  <div className="flex-1 overflow-y-auto px-3 py-2 space-y-2 min-h-0 note-scroll">
+                <div className="flex flex-col h-full overflow-hidden">
+                  <div className="flex-1 overflow-y-auto overflow-x-hidden px-3 py-2 space-y-2 min-h-0 note-scroll">
                     {messages.length === 0 ? (
                       <div className="text-muted text-[11px] text-center mt-6 px-4 leading-relaxed">
                         <MessageSquare size={18} className="mx-auto mb-2 opacity-30" />
-                        <p>Deskripsikan situasi atau masalahmu.</p>
+                        <p>Deskripsikan situasi atau masalahmu. AI akan membantu memetakan solusi.</p>
                         {activeDatasetCount > 0 && (
                           <p className="text-[10px] text-success mt-2">✦ RAG aktif</p>
                         )}
@@ -276,7 +283,7 @@ export default function NoteWorkspace({ noteId }: Props) {
                     <div className="clay-input flex items-center gap-1 !py-1.5 !px-2">
                       <input value={chatInput} onChange={(e) => setChatInput(e.target.value)}
                         onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSendChat(); } }}
-                        placeholder="Chat dengan AI…" className="flex-1 text-xs px-1 bg-transparent border-none outline-none text-foreground placeholder:text-muted/60" disabled={isStreaming} />
+                        placeholder="Tulis pesan untuk AI…" className="flex-1 text-xs px-1 bg-transparent border-none outline-none text-foreground placeholder:text-muted/60" disabled={isStreaming} />
                       {isStreaming ? (
                         <button onClick={handleStopChat}
                           className="p-1 rounded-lg hover:bg-danger/20 text-danger transition-all shrink-0">
@@ -298,17 +305,19 @@ export default function NoteWorkspace({ noteId }: Props) {
               )}
               {activePanel === 'studio' && <StudioPanel noteId={noteId} />}
 
-              {/* Always show mind map below */}
-              <div className="border-t border-border flex-1 min-h-0 flex flex-col">
-                <div className="px-3 py-2 border-b border-border shrink-0 flex items-center gap-1.5">
-                  <GitBranch size={12} className="text-accent" />
-                  <span className="text-[10px] font-semibold text-accent">Mind Map</span>
-                  <span className="text-[9px] text-muted ml-auto">{nodes?.length ?? 0} node</span>
+              {/* Mind Map tab — full height with scrollable canvas */}
+              {activePanel === 'mindmap' && (
+                <div className="flex-1 flex flex-col min-h-0">
+                  <div className="px-3 py-2 border-b border-border shrink-0 flex items-center gap-1.5">
+                    <GitBranch size={12} className="text-accent" />
+                    <span className="text-[10px] font-semibold text-accent">Mind Map</span>
+                    <span className="text-[9px] text-muted ml-auto">{nodes?.length ?? 0} node</span>
+                  </div>
+                  <div className="flex-1 min-h-0 overflow-auto note-scroll">
+                    <KiroCanvasWorkspace nodes={nodes ?? []} onToggleDone={handleToggleDone} />
+                  </div>
                 </div>
-                <div className="flex-1 min-h-0 overflow-y-auto p-2 note-scroll">
-                  <KiroCanvasWorkspace nodes={nodes ?? []} onToggleDone={handleToggleDone} />
-                </div>
-              </div>
+              )}
             </div>
           )}
 

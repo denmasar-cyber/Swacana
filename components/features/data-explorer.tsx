@@ -369,7 +369,7 @@ export default function DataExplorer() {
         )}
 
         {!isLoading && filtered.length > 0 && (
-          <div className="flex-1 overflow-y-auto min-h-0">
+          <div className="flex-1 overflow-y-auto overflow-x-hidden min-h-0 note-scroll">
             <div className="divide-y divide-border/50">
               {filtered.map((dataset) => (
                 <DatasetRow
