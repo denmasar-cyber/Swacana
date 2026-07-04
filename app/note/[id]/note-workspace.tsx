@@ -12,6 +12,7 @@ import ChatConsole from '@/components/features/chat-console';
 import KiroCanvasWorkspace from '@/components/features/kiro-canvas-workspace';
 import NoteEditor from '@/components/features/note-editor';
 import DataExplorer from '@/components/features/data-explorer';
+import CollaborationBar from '@/components/features/collaboration-bar';
 import { cn } from '@/lib/utils';
 
 interface Props {
@@ -162,6 +163,7 @@ export default function NoteWorkspace({ noteId }: Props) {
           >
             Data Explorer
           </button>
+          <CollaborationBar noteId={noteId} />
           <span className="text-[9px] text-slate-600 uppercase tracking-widest ml-2">
             100% Local
           </span>
